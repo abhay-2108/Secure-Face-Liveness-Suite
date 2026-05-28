@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NHAI Edge AI - Performance & Budget Simulator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="logo-icon">▲</span>
+                <div class="brand-text">
+                    <h1>NHAI FACIAL RECOGNITION</h1>
+                    <span class="badge">EDGE PIPELINE SIMULATOR</span>
+                </div>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#" class="active">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="#metrics" onclick="scrollToElement('metrics')">
+                    <span class="nav-icon">🛡️</span> Liveness & FAS
+                </a>
+                <a href="#export" onclick="scrollToElement('export-section')">
+                    <span class="nav-icon">💾</span> Export Benchmarks
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="device-status">
+                    <span class="status-dot green"></span>
+                    <span>Offline Pipeline Engine</span>
+                </div>
+                <div class="ver">v1.0.4-INT8</div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Window -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-title">
+                    <h2>Processing Budget & Demographics Simulator</h2>
+                    <p>Tune pipeline parameters, simulate low-spec hardware (Android 8 / iOS 12), and optimize edge inference models.</p>
+                </div>
+                <div class="system-time" id="live-time">
+                    2026-05-28 22:15:00
+                </div>
+            </header>
+
+            <!-- Real-Time Metrics Row -->
+            <section class="metrics-grid">
+                <div class="metric-card glow-teal">
+                    <div class="metric-info">
+                        <span class="metric-label">Total Pipeline Latency</span>
+                        <h3 class="metric-value" id="val-latency">-- ms</h3>
+                        <span class="metric-sub" id="sub-latency">Target: &lt; 1000ms</span>
+                    </div>
+                    <div class="metric-icon">⏱️</div>
+                </div>
+
+                <div class="metric-card glow-blue">
+                    <div class="metric-info">
+                        <span class="metric-label">Demographic Accuracy</span>
+                        <h3 class="metric-value" id="val-accuracy">-- %</h3>
+                        <span class="metric-sub" id="sub-accuracy">Target: &gt; 95%</span>
+                    </div>
+                    <div class="metric-icon">🎯</div>
+                </div>
+
+                <div class="metric-card glow-green">
+                    <div class="metric-info">
+                        <span class="metric-label">Memory Footprint</span>
+                        <h3 class="metric-value" id="val-memory">-- MB</h3>
+                        <span class="metric-sub" id="sub-memory">Limit: &lt; 20.0 MB</span>
+                    </div>
+                    <div class="metric-icon">💾</div>
+                </div>
+
+                <div class="metric-card glow-orange">
+                    <div class="metric-info">
+                        <span class="metric-label">Active Power Drain</span>
+                        <h3 class="metric-value" id="val-battery">-- mW</h3>
+                        <span class="metric-sub" id="sub-battery">Low Battery Impact</span>
+                    </div>
+                    <div class="metric-icon">⚡</div>
+                </div>
+            </section>
+
+            <!-- Dashboard Split Layout -->
+            <div class="dashboard-grid">
+                <!-- Control Panel (Left Card) -->
+                <div class="panel-card control-panel">
+                    <h3>⚙️ Simulator Configuration Panel</h3>
+                    <hr class="divider">
+                    
+                    <div class="control-group">
+                        <label for="hardware-preset">Device Target Specification</label>
+                        <select id="hardware-preset" class="form-input">
+                            <option value="low">Low-End (3GB RAM, Cortex-A53, Android 8+)</option>
+                            <option value="mid" selected>Mid-Range (4GB RAM, Cortex-A73, Android 10+)</option>
+                            <option value="flagship">Flagship (8GB RAM, Apple A14 / SD 888, iOS 15+)</option>
+                        </select>
+                        <span class="input-desc">Simulates CPU clock speed multipliers and memory limitations.</span>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Ambient Lighting Conditions</label>
+                        <select id="lighting-preset" class="form-input">
+                            <option value="optimal">Optimal Lighting (Indoor Toll Office)</option>
+                            <option value="noon">Extreme Direct Sunlight (High Noon High-Exposure)</option>
+                            <option value="shadow" selected>Harsh Toll Booth Canopy Shadow (Deep Shadows)</option>
+                            <option value="night">Low-Light Night Operation (Infrared/Dim Light)</option>
+                        </select>
+                        <span class="input-desc">Simulates environmental noise ratios in regional outdoor deployments.</span>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-clahe" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <div class="toggle-text">
+                                <span class="toggle-title">Enable Native C++ CLAHE Preprocessing</span>
+                                <span class="input-desc">Balances histogram exposure before ML model inference in &lt;5ms.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="slider-frame-skip">Inference Frame Skipping: <span class="slider-val" id="val-frame-skip">3</span></label>
+                        <input type="range" id="slider-frame-skip" min="1" max="10" value="3" class="range-slider">
+                        <span class="input-desc">Run recognition every N frames instead of processing all 30 FPS. Saves CPU.</span>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="slider-liveness-mode">Liveness Rigor Level</label>
+                        <select id="liveness-mode" class="form-input">
+                            <option value="passive">Passive Texture Analysis Only (Fastest)</option>
+                            <option value="active_basic">Active Head Turn + Passive (Balanced)</option>
+                            <option value="active_full" selected>Dual Layer: Optical Flow + Passive (Secure)</option>
+                        </select>
+                        <span class="input-desc">Adjusts FAS (Anti-Spoofing) complexity to counter video and printed fraud.</span>
+                    </div>
+                </div>
+
+                <!-- Analysis Charts (Right Card) -->
+                <div class="panel-card charts-panel">
+                    <h3>📈 Processing Budget Breakdowns</h3>
+                    <hr class="divider">
+                    <div class="chart-container">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-footer-metrics">
+                        <div class="sub-metric">
+                            <span>Image Preprocessing:</span>
+                            <strong id="time-preproc">-- ms</strong>
+                        </div>
+                        <div class="sub-metric">
+                            <span>Face Detection:</span>
+                            <strong id="time-detect">-- ms</strong>
+                        </div>
+                        <div class="sub-metric">
+                            <span>FAS Liveness:</span>
+                            <strong id="time-liveness">-- ms</strong>
+                        </div>
+                        <div class="sub-metric">
+                            <span>ArcFace Recognition:</span>
+                            <strong id="time-recogn">-- ms</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Breakdown Section -->
+            <section class="panel-card detail-section" id="metrics">
+                <div class="detail-header">
+                    <h3>💡 Edge Quantization & Preprocessing Sizing Diagnostics</h3>
+                </div>
+                <hr class="divider">
+                <div class="diag-grid">
+                    <div class="diag-box">
+                        <h4>Model Quantization Sizing Suite</h4>
+                        <table class="diag-table">
+                            <thead>
+                                border
+                                <tr>
+                                    <th>Model Stage</th>
+                                    <th>Original Size</th>
+                                    <th>Quantized Size (INT8)</th>
+                                    <th>Compression Ratio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1. Face Detection</td>
+                                    <td>1.2 MB</td>
+                                    <td><strong>320 KB</strong></td>
+                                    <td class="text-green">73.3%</td>
+                                </tr>
+                                <tr>
+                                    <td>2. Liveness Detection</td>
+                                    <td>9.0 MB</td>
+                                    <td><strong>2.3 MB</strong></td>
+                                    <td class="text-green">74.4%</td>
+                                </tr>
+                                <tr>
+                                    <td>3. Face Recognition</td>
+                                    <td>22.0 MB</td>
+                                    <td><strong>5.5 MB</strong></td>
+                                    <td class="text-green">75.0%</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td>Total Footprint</td>
+                                    <td>32.2 MB</td>
+                                    <td><strong>8.12 MB</strong></td>
+                                    <td class="text-green">74.8%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="diag-box flex-center">
+                        <div class="status-alert-box" id="status-card">
+                            <span class="alert-icon" id="status-icon">✓</span>
+                            <h4 id="status-title">System Optimal</h4>
+                            <p id="status-desc">Quantized weights easily satisfy the 20MB local flash memory limit. Direct mmap execution ensures Android 8 devices run with zero RAM bloat crashes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Export Panel -->
+            <section class="panel-card export-section" id="export-section">
+                <div class="export-flex">
+                    <div class="export-text">
+                        <h3>📥 Download Benchmark Deck Report</h3>
+                        <p>Generate and save the simulated technical performance spreadsheet to attach to your NHAI presentation deck.</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-export">Export Benchmark CSV</button>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

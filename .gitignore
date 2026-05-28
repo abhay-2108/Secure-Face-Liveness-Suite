@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+
+# Checkpoints & Weights (All model weights live on HuggingFace Hub: raj0120/ghostfacenet_nhai)
+*.pt
+*.pth
+*.tflite
+*.onnx
+checkpoints/
+edge_vision_engine/models/weights/
+edge_vision_engine/checkpoints/
+optimized_weights/
+
+# Hugging Face Hub download cache folders (auto-created by hf_hub_download)
+**/.cache/
+
+# Data
+data/
+
+# C++ Compiled Executables & Libraries
+*.exe
+*.o
+*.a
+*.obj
+*.lib
+*.dll
+*.dylib

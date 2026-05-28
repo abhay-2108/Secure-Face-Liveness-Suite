@@ -1,0 +1,49 @@
+{
+  "hardware": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "cuda_version": "11.8",
+  "pytorch_version": "2.7.1+cu118",
+  "runs_per_test": 20,
+  "benchmarks": {
+    "face_detection": {
+      "mean_ms": 0.537,
+      "min_ms": 0.399,
+      "max_ms": 0.974,
+      "stdev_ms": 0.141
+    },
+    "passive_liveness": {
+      "mean_ms": 0.491,
+      "min_ms": 0.414,
+      "max_ms": 0.977,
+      "stdev_ms": 0.125,
+      "prediction": "VIDEO REPLAY SPOOF",
+      "confidence_pct": 38.16
+    },
+    "face_embedding": {
+      "mean_ms": 9.955,
+      "min_ms": 8.524,
+      "max_ms": 12.297,
+      "stdev_ms": 1.095,
+      "embedding_dim": 128,
+      "l2_norm": 1.0
+    },
+    "cosine_similarity_1_102": {
+      "mean_ms": 0.101,
+      "min_ms": 0.06,
+      "max_ms": 0.412,
+      "stdev_ms": 0.041,
+      "gallery_size": 102
+    },
+    "full_pipeline": {
+      "mean_ms": 11.21,
+      "min_ms": 10.027,
+      "max_ms": 12.888,
+      "stdev_ms": 0.775
+    },
+    "model_sizes": {
+      "ghostfacenet_epoch_3.pt": 6726.21,
+      "linzaer_version_rfb_320.pth": 30.54,
+      "mini_fas_net_v1se.pth": 6.44,
+      "total_mb": 6.605
+    }
+  }
+}
