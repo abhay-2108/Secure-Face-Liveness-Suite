@@ -74,7 +74,7 @@ impl SyncManager {
             Err(_) => return false,
         };
 
-        let is_valid = crate::crypto::CryptoEngine::verify(
+        let is_valid = crate::crypto::verify_purge_token(
             &server_pub_key,
             concat_ids.as_bytes(),
             &signature_bytes,

@@ -10,7 +10,7 @@ mod sync;
 mod thermal_governor;
 
 use lazy_static::lazy_static;
-use memory_arena::PreallocatedArena;
+use memory_arena::MemoryArena;
 use preprocessing::CLAHE;
 use std::sync::Mutex;
 use thermal_governor::{ThermalConfig, ThermalGovernor};
@@ -28,7 +28,7 @@ use ndk_sys::{
 type TractModel = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
 
 lazy_static! {
-    static ref ARENA: Mutex<PreallocatedArena> = Mutex::new(PreallocatedArena::new());
+    static ref ARENA: Mutex<MemoryArena> = Mutex::new(MemoryArena::with_default_size().unwrap());
     static ref GOVERNOR: Mutex<ThermalGovernor> = Mutex::new(ThermalGovernor::new(ThermalConfig::default()));
 
     // Globally cache our loaded Tract models

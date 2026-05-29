@@ -29,6 +29,7 @@ uuid = { version = "1.10.0", features = ["v4"] }
 rustfft = "6.2.0"
 rand = "0.8.5"
 lazy_static = "1.5.0"
+log = "0.4"
 
 # Android NDK / JNI
 [target.'cfg(target_os = "android")'.dependencies]

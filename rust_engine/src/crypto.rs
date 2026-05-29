@@ -62,7 +62,8 @@ pub fn encrypt_ledger(payload: &[u8]) -> Vec<u8> {
 /// Verifies a cryptographic purge token from the AWS Lambda.
 pub fn verify_purge_token(public_key_bytes: &[u8], message: &[u8], signature_bytes: &[u8]) -> bool {
     if let Ok(verifying_key) = VerifyingKey::from_bytes(public_key_bytes.try_into().unwrap()) {
-        if let Ok(signature) = Signature::from_bytes(signature_bytes.try_into().unwrap()) {
+        if let Ok(sig_bytes) = signature_bytes.try_into() {
+            let signature = Signature::from_bytes(sig_bytes);
             return verifying_key.verify_strict(message, &signature).is_ok();
         }
     }
