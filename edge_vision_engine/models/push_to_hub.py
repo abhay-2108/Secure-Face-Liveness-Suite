@@ -27,7 +27,10 @@ def upload_models_to_hub(repo_id="raj0120/edge-face-pipeline", token=None):
         models_to_upload = [
             ("edge_vision_engine/checkpoints/ghostfacenet_epoch_3.pt", "ghostfacenet_epoch_3.pt"),
             ("edge_vision_engine/models/weights/linzaer_version_rfb_320.pth", "linzaer_version_rfb_320.pth"),
-            ("edge_vision_engine/models/weights/mini_fas_net_v1se.pth", "mini_fas_net_v1se.pth")
+            ("edge_vision_engine/models/weights/mini_fas_net_v1se.pth", "mini_fas_net_v1se.pth"),
+            ("edge_vision_engine/checkpoints/onnx/ghostfacenet.onnx", "ghostfacenet.onnx"),
+            ("edge_vision_engine/checkpoints/onnx/liveness.onnx", "liveness.onnx"),
+            ("edge_vision_engine/checkpoints/onnx/detector.onnx", "detector.onnx")
         ]
 
         print(f"[INFO] Found 3 models to upload. Committing to hub...")

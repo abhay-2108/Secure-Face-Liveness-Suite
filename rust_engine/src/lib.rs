@@ -14,25 +14,31 @@ use memory_arena::PreallocatedArena;
 use preprocessing::CLAHE;
 use std::sync::Mutex;
 use thermal_governor::{ThermalConfig, ThermalGovernor};
+use tract_onnx::prelude::*;
+
+#[cfg(target_os = "android")]
+use jni::sys::jobject;
+#[cfg(target_os = "android")]
+use ndk_sys::{AAssetManager, AAssetManager_fromJava, AAssetManager_open, AAsset_getBuffer, AAsset_getLength, AASSET_MODE_BUFFER};
+
+// Type alias for our loaded Tract model
+type TractModel = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
 
 lazy_static! {
     static ref ARENA: Mutex<PreallocatedArena> = Mutex::new(PreallocatedArena::new());
-
-    // Feature 9: Dynamic Thermal Throttling
     static ref GOVERNOR: Mutex<ThermalGovernor> = Mutex::new(ThermalGovernor::new(ThermalConfig::default()));
+    
+    // Globally cache our loaded Tract models
+    static ref GHOST_NET: Mutex<Option<TractModel>> = Mutex::new(None);
+    static ref LIVENESS_NET: Mutex<Option<TractModel>> = Mutex::new(None);
 }
 
 #[no_mangle]
 pub extern "C" fn datalake_vision_init() -> i32 {
     let mut arena = ARENA.lock().unwrap();
     if arena.allocate(40 * 1024 * 1024).is_ok() {
-        // Mock initializing the thermal governor to read Android sysfs
-        let mut gov = GOVERNOR.lock().unwrap();
-        // In real JNI, we might pass a callback to read the battery intent
-        log::info!(
-            "Thermal Governor Initialized. Target FPS: {}",
-            gov.target_fps()
-        );
+        let gov = GOVERNOR.lock().unwrap();
+        log::info!("Thermal Governor Initialized. Target FPS: {}", gov.target_fps());
         1
     } else {
         0
@@ -40,21 +46,69 @@ pub extern "C" fn datalake_vision_init() -> i32 {
 }
 
 /// Feature 10: Zero-Copy APK Memory Mapping (mmap)
-///
-/// Instead of extracting the ONNX models to disk, we use `AAssetManager_open`
-/// and `AAsset_getBuffer` via the NDK to get a direct memory pointer to the AI model
-/// *while it is still compressed inside the .apk file*.
-/// This saves ~15MB of RAM, making it perfect for 3GB devices.
+#[cfg(target_os = "android")]
 #[no_mangle]
 pub extern "C" fn datalake_vision_load_model_zero_copy(
-    asset_manager_ptr: *mut std::ffi::c_void,
+    env: *mut jni::sys::JNIEnv,
+    asset_manager: jobject,
 ) -> i32 {
-    // 1. Cast `asset_manager_ptr` to `*mut ndk_sys::AAssetManager`
-    // 2. Open the .onnx asset
-    // 3. Call AAsset_getBuffer to get a pointer
-    // 4. Pass pointer to Tract `Model::read_from_slice`
-    log::info!("Zero-Copy ONNX model loaded via AAssetManager!");
-    1
+    unsafe {
+        // 1. Extract the AAssetManager from the Java object
+        let mgr = AAssetManager_fromJava(env as *mut _, asset_manager);
+        if mgr.is_null() {
+            log::error!("Failed to get AAssetManager from Java");
+            return 0;
+        }
+
+        // Helper closure to load a model via zero-copy AAsset buffer
+        let mut load_model = |filename: &str| -> Option<TractModel> {
+            let c_filename = std::ffi::CString::new(filename).unwrap();
+            let asset = AAssetManager_open(mgr, c_filename.as_ptr(), AASSET_MODE_BUFFER as i32);
+            if asset.is_null() {
+                log::error!("Asset not found: {}", filename);
+                return None;
+            }
+
+            let length = AAsset_getLength(asset);
+            let buffer = AAsset_getBuffer(asset);
+            
+            // Reconstruct the slice directly from the uncompressed APK memory
+            let slice = std::slice::from_raw_parts(buffer as *const u8, length as usize);
+            
+            // Parse with Tract
+            let mut cursor = std::io::Cursor::new(slice);
+            let model = tract_onnx::onnx().model_for_read(&mut cursor).ok()?
+                .into_optimized().ok()?
+                .into_runnable().ok()?;
+                
+            Some(model)
+        };
+
+        // 2. Load GhostFaceNet and Liveness
+        let mut ghost_guard = GHOST_NET.lock().unwrap();
+        *ghost_guard = load_model("ghostfacenet.onnx");
+
+        let mut live_guard = LIVENESS_NET.lock().unwrap();
+        *live_guard = load_model("liveness.onnx");
+
+        if ghost_guard.is_some() && live_guard.is_some() {
+            log::info!("Zero-Copy ONNX models loaded successfully via AAssetManager!");
+            1
+        } else {
+            log::error!("Failed to parse ONNX models");
+            0
+        }
+    }
+}
+
+// Fallback for non-Android targets (e.g. iOS or Simulator testing)
+#[cfg(not(target_os = "android"))]
+#[no_mangle]
+pub extern "C" fn datalake_vision_load_model_zero_copy(
+    _asset_manager_ptr: *mut std::ffi::c_void,
+) -> i32 {
+    log::warn!("Zero-Copy loading is only supported on Android via NDK AAssetManager in this implementation.");
+    0
 }
 
 #[no_mangle]
@@ -67,10 +121,7 @@ pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, heig
     {
         let mut gov = GOVERNOR.lock().unwrap();
         if !gov.should_process_frame() {
-            // The phone is getting too hot (e.g., > 40°C in Indian sun).
-            // We skip processing this frame to let the CPU cool down.
-            // The React Native camera preview remains smooth at 30 FPS.
-            return 2; // Return code indicating "Throttled Frame"
+            return 2; // Throttled Frame
         }
     }
 
@@ -81,11 +132,18 @@ pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, heig
     let clahe = CLAHE::new(2.0, 8, 8);
     clahe.apply_in_place(y_slice, width as usize, height as usize);
 
-    // 2. Liveness Detection (Passive Micro-Texture check)
+    // 2. Liveness Detection
     let is_live = liveness::check_liveness(y_slice, width as usize, height as usize);
     if !is_live {
         return -2; // Spoof Detected
     }
+    
+    // 3. Optional: Tract ONNX Inference Demo (In real deployment, we'd feed resized crops here)
+    // let ghost = GHOST_NET.lock().unwrap();
+    // if let Some(model) = ghost.as_ref() {
+    //      let tensor: tract_ndarray::Array4<f32> = ... ; // convert y_slice to 1x3x112x112 tensor
+    //      let result = model.run(tvec!(tensor.into_tvec().into())).unwrap();
+    // }
 
     1 // Success
 }
