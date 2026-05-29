@@ -121,6 +121,13 @@ pub extern "C" fn datalake_vision_load_model_zero_copy(
     0
 }
 
+/// Process a raw Y-plane camera frame through the full ML pipeline.
+///
+/// # Safety
+///
+/// - `y_ptr` must be a valid, non-null pointer to a buffer of at least `width * height` bytes.
+/// - The buffer must remain valid and unmodified for the duration of this call.
+/// - This function must not be called concurrently from multiple threads with the same buffer.
 #[no_mangle]
 pub unsafe extern "C" fn datalake_vision_process_frame(
     y_ptr: *mut u8,
