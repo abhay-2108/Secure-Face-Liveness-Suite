@@ -199,7 +199,7 @@ def main():
     # ── Save raw results ──────────────────────────────────────────────────────
     with open("benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
-    print("\n[SAVED] Raw results → benchmark_results.json")
+    print("\n[SAVED] Raw results -> benchmark_results.json")
     print("\n" + "=" * 64)
     print("  Benchmark suite complete.")
     print("=" * 64)
