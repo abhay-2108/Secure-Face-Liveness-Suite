@@ -1,0 +1,50 @@
+{
+  "hardware": "CPUExecutionProvider",
+  "results": [
+    {
+      "image": "iamge2.jpg",
+      "detection_ms": 4.483,
+      "liveness_ms": 1.605,
+      "recognition_ms": 10.097,
+      "total_ms": 16.186,
+      "liveness_label": "SPOOF",
+      "liveness_score": 0.3717
+    },
+    {
+      "image": "iamge3.jpg",
+      "detection_ms": 2.907,
+      "liveness_ms": 0.333,
+      "recognition_ms": 8.32,
+      "total_ms": 11.56,
+      "liveness_label": "SPOOF",
+      "liveness_score": 0.3729
+    },
+    {
+      "image": "image1.jpg",
+      "detection_ms": 2.361,
+      "liveness_ms": 0.313,
+      "recognition_ms": 36.326,
+      "total_ms": 39.0,
+      "liveness_label": "SPOOF",
+      "liveness_score": 0.3775
+    },
+    {
+      "image": "image4.jpg",
+      "detection_ms": 5.173,
+      "liveness_ms": 0.31,
+      "recognition_ms": 3.355,
+      "total_ms": 8.838,
+      "liveness_label": "SPOOF",
+      "liveness_score": 0.3654
+    },
+    {
+      "image": "image5.jpg",
+      "detection_ms": 3.292,
+      "liveness_ms": 0.34,
+      "recognition_ms": 20.394,
+      "total_ms": 24.026,
+      "liveness_label": "SPOOF",
+      "liveness_score": 0.3727
+    }
+  ]
+}

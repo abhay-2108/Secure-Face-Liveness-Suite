@@ -97,13 +97,30 @@ The cumulative storage footprint of all edge models is optimized to run on memor
 
 ---
 
+## 5. ONNX CPU Runtime Performance Benchmarks
+
+These benchmarks represent the true execution latencies of the `.onnx` models running via `onnxruntime` (`CPUExecutionProvider`) on real-world test images.
+
+| Test Image | Detection Latency | Liveness Latency | Recognition Latency | Total End-to-End Latency | Liveness Prediction |
+|---|---|---|---|---|---|
+| `iamge2.jpg` | 4.48 ms | 1.61 ms | 10.10 ms | 16.19 ms | SPOOF (37.17%) |
+| `iamge3.jpg` | 2.91 ms | 0.33 ms | 8.32 ms | 11.56 ms | SPOOF (37.29%) |
+| `image1.jpg` | 2.36 ms | 0.31 ms | 36.33 ms | 39.00 ms | SPOOF (37.75%) |
+| `image4.jpg` | 5.17 ms | 0.31 ms | 3.36 ms | 8.84 ms | SPOOF (36.54%) |
+| `image5.jpg` | 3.29 ms | 0.34 ms | 20.39 ms | 24.03 ms | SPOOF (37.27%) |
+
+> **Analysis**: The ONNX models execute incredibly fast even on the CPU. The entire pipeline, from raw image input to embedding extraction, completes in **~19.9 ms on average** across all tested images, well within real-time compliance targets.
+
+---
+
 ## How to Reproduce
 
-To regenerate the live execution latency benchmarks on your hardware, run the standard benchmark script:
-
+To regenerate the PyTorch hardware profiling metrics, run:
 ```bash
-# Ensure virtual environment is active and run
 python run_benchmarks.py
 ```
 
-The raw hardware logs will be updated in `benchmark_results.json`.
+To run the ONNX CPU edge-device emulation on your own test images, populate the `data/test_images/` directory and run:
+```bash
+python benchmark_onnx.py
+```
