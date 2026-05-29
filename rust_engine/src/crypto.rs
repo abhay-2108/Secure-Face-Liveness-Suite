@@ -56,7 +56,7 @@ pub fn encrypt_ledger(payload: &[u8]) -> Vec<u8> {
     let key = Key::from(generate_hardware_fingerprint());
     let cipher = ChaCha20Poly1305::new(&key);
     let nonce = Nonce::from_slice(b"datalake-n-1"); // 12-bytes
-    cipher.encrypt(&nonce, payload).unwrap()
+    cipher.encrypt(nonce, payload).unwrap()
 }
 
 /// Verifies a cryptographic purge token from the AWS Lambda.

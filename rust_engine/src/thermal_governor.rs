@@ -230,7 +230,7 @@ impl ThermalGovernor {
 
         // Apply frame skip based on current tier
         let skip = self.current_tier.skip_interval();
-        let should_process = (self.frame_counter % skip as u64) == 0;
+        let should_process = self.frame_counter.is_multiple_of(skip as u64);
 
         if should_process {
             self.processed_counter += 1;

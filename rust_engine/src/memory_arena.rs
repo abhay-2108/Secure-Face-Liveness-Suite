@@ -132,6 +132,7 @@ impl MemoryArena {
     /// - Be 16-byte aligned
     /// - Not overlap with any other active allocation
     /// - Remain valid until the next call to `reset()`
+    #[allow(clippy::mut_from_ref)]
     pub fn alloc(&self, size: usize) -> Result<&mut [u8], ArenaError> {
         if size == 0 {
             return Ok(&mut []);
@@ -197,6 +198,7 @@ impl MemoryArena {
     ///
     /// # Returns
     /// A mutable slice of `count` zero-initialized elements of type T.
+    #[allow(clippy::mut_from_ref)]
     pub fn alloc_slice<T: Copy + Default>(&self, count: usize) -> Result<&mut [T], ArenaError> {
         let byte_size = count * std::mem::size_of::<T>();
         let bytes = self.alloc(byte_size)?;
@@ -208,7 +210,7 @@ impl MemoryArena {
 
         // Verify alignment for the target type
         assert!(
-            ptr as usize % std::mem::align_of::<T>() == 0,
+            (ptr as usize).is_multiple_of(std::mem::align_of::<T>()),
             "Arena allocation misaligned for type"
         );
 

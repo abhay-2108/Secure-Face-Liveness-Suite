@@ -3,12 +3,12 @@
 //! Provides Contrast Limited Adaptive Histogram Equalization (CLAHE) for handling
 //! harsh sunlight and uneven illumination in rural environments.
 
-pub struct CLAHE {
+pub struct Clahe {
     pub clip_limit: f32,
     pub grid_size: (usize, usize),
 }
 
-impl CLAHE {
+impl Clahe {
     pub fn new(clip_limit: f32, grid_w: usize, grid_h: usize) -> Self {
         Self {
             clip_limit,
@@ -92,7 +92,7 @@ impl CLAHE {
             let ty2 = (ty1 + 1).min(tiles_y - 1);
 
             let y1_center = ty1 * tile_h + tile_h / 2;
-            let dy = if y > y1_center { y - y1_center } else { 0 };
+            let dy = y.saturating_sub(y1_center);
             let wy = (dy as f32 / tile_h as f32).min(1.0);
 
             let row_offset = y * width;
@@ -101,7 +101,7 @@ impl CLAHE {
                 let tx2 = (tx1 + 1).min(tiles_x - 1);
 
                 let x1_center = tx1 * tile_w + tile_w / 2;
-                let dx = if x > x1_center { x - x1_center } else { 0 };
+                let dx = x.saturating_sub(x1_center);
                 let wx = (dx as f32 / tile_w as f32).min(1.0);
 
                 let val = buffer[row_offset + x] as usize;

@@ -11,7 +11,7 @@ mod thermal_governor;
 
 use lazy_static::lazy_static;
 use memory_arena::MemoryArena;
-use preprocessing::CLAHE;
+use preprocessing::Clahe;
 use std::sync::Mutex;
 use thermal_governor::{ThermalConfig, ThermalGovernor};
 use tract_onnx::prelude::*;
@@ -38,7 +38,7 @@ lazy_static! {
 
 #[no_mangle]
 pub extern "C" fn datalake_vision_init() -> i32 {
-    let mut arena = ARENA.lock().unwrap();
+    let arena = ARENA.lock().unwrap();
     if arena.alloc(40 * 1024 * 1024).is_ok() {
         let gov = GOVERNOR.lock().unwrap();
         log::info!(
@@ -122,7 +122,7 @@ pub extern "C" fn datalake_vision_load_model_zero_copy(
 }
 
 #[no_mangle]
-pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, height: i32) -> i32 {
+pub unsafe extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, height: i32) -> i32 {
     if y_ptr.is_null() {
         return -1;
     }
@@ -139,7 +139,7 @@ pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, heig
     let y_slice = unsafe { std::slice::from_raw_parts_mut(y_ptr, size) };
 
     // 1. Preprocessing (CLAHE + SIMD)
-    let clahe = CLAHE::new(2.0, 8, 8);
+    let clahe = Clahe::new(2.0, 8, 8);
     clahe.apply_in_place(y_slice, width as usize, height as usize);
 
     // 2. Liveness Detection
