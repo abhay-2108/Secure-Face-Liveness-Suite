@@ -1,0 +1,186 @@
+name: Cross-Compile Rust Engine
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'rust_engine/**'
+      - '.github/workflows/rust-cross-compile.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'rust_engine/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1: Lint & Test (Host Platform)
+  # ─────────────────────────────────────────────────────────────────────
+  test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust_engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run unit tests
+        run: cargo test --all-features
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2: Android Cross-Compilation (arm64-v8a + armeabi-v7a)
+  # ─────────────────────────────────────────────────────────────────────
+  android:
+    name: Build Android (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-linux-android
+            abi: arm64-v8a
+          - target: armv7-linux-androideabi
+            abi: armeabi-v7a
+    defaults:
+      run:
+        working-directory: rust_engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: '25.2.9519653'
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: android-${{ matrix.target }}-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Build Android shared library
+        run: |
+          cargo ndk \
+            --target ${{ matrix.target }} \
+            --platform 26 \
+            build --release
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.abi }}
+          path: rust_engine/target/${{ matrix.target }}/release/*.so
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 3: iOS Cross-Compilation (aarch64-apple-ios)
+  # ─────────────────────────────────────────────────────────────────────
+  ios:
+    name: Build iOS (aarch64)
+    runs-on: macos-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: rust_engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: ios-aarch64-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Build iOS static library
+        run: cargo build --release --target aarch64-apple-ios
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-aarch64
+          path: rust_engine/target/aarch64-apple-ios/release/*.a
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 4: Bundle into React Native Module
+  # ─────────────────────────────────────────────────────────────────────
+  bundle:
+    name: Bundle NPM Package
+    runs-on: ubuntu-latest
+    needs: [android, ios]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Android arm64-v8a
+        uses: actions/download-artifact@v4
+        with:
+          name: android-arm64-v8a
+          path: react-native-datalake-vision/android/src/main/jniLibs/arm64-v8a/
+
+      - name: Download Android armeabi-v7a
+        uses: actions/download-artifact@v4
+        with:
+          name: android-armeabi-v7a
+          path: react-native-datalake-vision/android/src/main/jniLibs/armeabi-v7a/
+
+      - name: Download iOS aarch64
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-aarch64
+          path: react-native-datalake-vision/ios/libs/
+
+      - name: Verify bundled binaries
+        run: |
+          echo "=== Android arm64-v8a ==="
+          ls -lh react-native-datalake-vision/android/src/main/jniLibs/arm64-v8a/
+          echo "=== Android armeabi-v7a ==="
+          ls -lh react-native-datalake-vision/android/src/main/jniLibs/armeabi-v7a/
+          echo "=== iOS aarch64 ==="
+          ls -lh react-native-datalake-vision/ios/libs/
+
+      - name: Upload bundled module
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-native-datalake-vision
+          path: react-native-datalake-vision/
