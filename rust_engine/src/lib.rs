@@ -39,7 +39,7 @@ lazy_static! {
 #[no_mangle]
 pub extern "C" fn datalake_vision_init() -> i32 {
     let mut arena = ARENA.lock().unwrap();
-    if arena.allocate(40 * 1024 * 1024).is_ok() {
+    if arena.alloc(40 * 1024 * 1024).is_ok() {
         let gov = GOVERNOR.lock().unwrap();
         log::info!(
             "Thermal Governor Initialized. Target FPS: {}",
