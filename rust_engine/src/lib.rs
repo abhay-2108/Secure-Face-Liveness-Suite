@@ -19,7 +19,10 @@ use tract_onnx::prelude::*;
 #[cfg(target_os = "android")]
 use jni::sys::jobject;
 #[cfg(target_os = "android")]
-use ndk_sys::{AAssetManager, AAssetManager_fromJava, AAssetManager_open, AAsset_getBuffer, AAsset_getLength, AASSET_MODE_BUFFER};
+use ndk_sys::{
+    AAssetManager, AAssetManager_fromJava, AAssetManager_open, AAsset_getBuffer, AAsset_getLength,
+    AASSET_MODE_BUFFER,
+};
 
 // Type alias for our loaded Tract model
 type TractModel = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
@@ -27,7 +30,7 @@ type TractModel = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<d
 lazy_static! {
     static ref ARENA: Mutex<PreallocatedArena> = Mutex::new(PreallocatedArena::new());
     static ref GOVERNOR: Mutex<ThermalGovernor> = Mutex::new(ThermalGovernor::new(ThermalConfig::default()));
-    
+
     // Globally cache our loaded Tract models
     static ref GHOST_NET: Mutex<Option<TractModel>> = Mutex::new(None);
     static ref LIVENESS_NET: Mutex<Option<TractModel>> = Mutex::new(None);
@@ -38,7 +41,10 @@ pub extern "C" fn datalake_vision_init() -> i32 {
     let mut arena = ARENA.lock().unwrap();
     if arena.allocate(40 * 1024 * 1024).is_ok() {
         let gov = GOVERNOR.lock().unwrap();
-        log::info!("Thermal Governor Initialized. Target FPS: {}", gov.target_fps());
+        log::info!(
+            "Thermal Governor Initialized. Target FPS: {}",
+            gov.target_fps()
+        );
         1
     } else {
         0
@@ -71,16 +77,20 @@ pub extern "C" fn datalake_vision_load_model_zero_copy(
 
             let length = AAsset_getLength(asset);
             let buffer = AAsset_getBuffer(asset);
-            
+
             // Reconstruct the slice directly from the uncompressed APK memory
             let slice = std::slice::from_raw_parts(buffer as *const u8, length as usize);
-            
+
             // Parse with Tract
             let mut cursor = std::io::Cursor::new(slice);
-            let model = tract_onnx::onnx().model_for_read(&mut cursor).ok()?
-                .into_optimized().ok()?
-                .into_runnable().ok()?;
-                
+            let model = tract_onnx::onnx()
+                .model_for_read(&mut cursor)
+                .ok()?
+                .into_optimized()
+                .ok()?
+                .into_runnable()
+                .ok()?;
+
             Some(model)
         };
 
@@ -137,7 +147,7 @@ pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, heig
     if !is_live {
         return -2; // Spoof Detected
     }
-    
+
     // 3. Optional: Tract ONNX Inference Demo (In real deployment, we'd feed resized crops here)
     // let ghost = GHOST_NET.lock().unwrap();
     // if let Some(model) = ghost.as_ref() {
