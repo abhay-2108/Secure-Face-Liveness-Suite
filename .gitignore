@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
 # Virtual Environment
 venv/
@@ -10,7 +9,7 @@ env/
 ENV/
 .env
 
-# Checkpoints & Weights (All model weights live on HuggingFace Hub: raj0120/ghostfacenet_nhai)
+# Checkpoints & Weights (All model weights live on HuggingFace Hub: raj0120/edge-face-pipeline)
 *.pt
 *.pth
 *.tflite
@@ -19,6 +18,7 @@ checkpoints/
 edge_vision_engine/models/weights/
 edge_vision_engine/checkpoints/
 optimized_weights/
+models_onnx/
 
 # Hugging Face Hub download cache folders (auto-created by hf_hub_download)
 **/.cache/
@@ -26,11 +26,47 @@ optimized_weights/
 # Data
 data/
 
-# C++ Compiled Executables & Libraries
+# C++ Compiled Executables & Libraries (legacy)
 *.exe
 *.o
-*.a
 *.obj
 *.lib
 *.dll
 *.dylib
+
+# Rust
+rust_engine/target/
+**/*.rs.bk
+
+# React Native
+react-native-datalake-vision/node_modules/
+react-native-datalake-vision/example/node_modules/
+react-native-datalake-vision/example/android/build/
+react-native-datalake-vision/example/android/.gradle/
+react-native-datalake-vision/example/android/app/build/
+react-native-datalake-vision/example/ios/build/
+react-native-datalake-vision/example/ios/Pods/
+react-native-datalake-vision/android/build/
+react-native-datalake-vision/ios/build/
+react-native-datalake-vision/lib/
+
+# Native compiled binaries (built by CI/CD)
+*.so
+*.a
+**/jniLibs/
+
+# Node
+node_modules/
+*.tgz
+.yarn/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
