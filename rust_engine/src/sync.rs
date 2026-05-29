@@ -1,4 +1,4 @@
-use crate::ledger::{Ledger, AttendanceEvent};
+use crate::ledger::{AttendanceEvent, Ledger};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -49,21 +49,26 @@ impl SyncManager {
 
         // In a real mobile app using Rust, you'd use reqwest or ureq here.
         // For the sake of this hackathon engine, we mock the HTTP request structure
-        // that the React Native layer will actually execute using JS `fetch` and pass 
+        // that the React Native layer will actually execute using JS `fetch` and pass
         // the response back to Rust to verify the purge token.
 
         Ok(count)
     }
 
     /// Verifies the AWS Lambda purge token and truncates the local ledger.
-    pub fn verify_and_purge(&self, record_ids: &[String], purge_token_hex: &str, server_public_key_hex: &str) -> bool {
+    pub fn verify_and_purge(
+        &self,
+        record_ids: &[String],
+        purge_token_hex: &str,
+        server_public_key_hex: &str,
+    ) -> bool {
         let concat_ids = record_ids.join("");
-        
+
         let server_pub_key = match hex::decode(server_public_key_hex) {
             Ok(k) => k,
             Err(_) => return false,
         };
-        
+
         let signature_bytes = match hex::decode(purge_token_hex) {
             Ok(s) => s,
             Err(_) => return false,
@@ -72,7 +77,7 @@ impl SyncManager {
         let is_valid = crate::crypto::CryptoEngine::verify(
             &server_pub_key,
             concat_ids.as_bytes(),
-            &signature_bytes
+            &signature_bytes,
         );
 
         if is_valid {

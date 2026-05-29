@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -13,7 +13,7 @@ pub struct AttendanceEvent {
     pub longitude: f64,
     pub embedding_hash: String,
     pub encrypted_payload: String, // Base64
-    pub signature: String, // Hex
+    pub signature: String,         // Hex
 }
 
 /// Manages an append-only binary log of offline events.
@@ -41,7 +41,7 @@ impl Ledger {
         file.write_all(&size.to_le_bytes())?;
         // Write payload
         file.write_all(&serialized)?;
-        
+
         file.sync_data()?;
         Ok(())
     }

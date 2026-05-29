@@ -84,13 +84,13 @@ impl CLAHE {
                 }
             }
         }
-        
+
         let mut temp_buffer = vec![0u8; width * height];
-        
+
         for y in 0..height {
             let ty1 = (y / tile_h).min(tiles_y - 1);
             let ty2 = (ty1 + 1).min(tiles_y - 1);
-            
+
             let y1_center = ty1 * tile_h + tile_h / 2;
             let dy = if y > y1_center { y - y1_center } else { 0 };
             let wy = (dy as f32 / tile_h as f32).min(1.0);

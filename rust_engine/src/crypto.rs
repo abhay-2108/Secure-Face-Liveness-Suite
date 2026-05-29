@@ -31,7 +31,7 @@ pub fn generate_hardware_fingerprint() -> [u8; 32] {
 /// Feature 7: Offline Time-Drift Protection (Anti-Tampering)
 ///
 /// Field workers might manually change their device clock back 3 hours to fake attendance times.
-/// We track the delta between the hardware monotonic clock (time since device boot) 
+/// We track the delta between the hardware monotonic clock (time since device boot)
 /// and the Real-Time Clock (RTC). If the delta suddenly shifts by more than a few minutes,
 /// we know the user has tampered with their clock while offline.
 pub fn detect_time_tampering(last_rtc: u64, last_monotonic: u64, current_monotonic: u64) -> bool {
@@ -41,13 +41,13 @@ pub fn detect_time_tampering(last_rtc: u64, last_monotonic: u64, current_monoton
         .as_secs();
 
     let expected_rtc = last_rtc + (current_monotonic - last_monotonic);
-    
+
     // If the actual RTC is off by more than 300 seconds (5 mins) from the expected monotonic progression,
     // they tampered with the device clock!
     if (current_rtc as i64 - expected_rtc as i64).abs() > 300 {
         return true; // Tampering detected!
     }
-    
+
     false
 }
 

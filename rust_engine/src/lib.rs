@@ -9,15 +9,15 @@ mod preprocessing;
 mod sync;
 mod thermal_governor;
 
+use lazy_static::lazy_static;
 use memory_arena::PreallocatedArena;
 use preprocessing::CLAHE;
-use thermal_governor::{ThermalGovernor, ThermalConfig};
 use std::sync::Mutex;
-use lazy_static::lazy_static;
+use thermal_governor::{ThermalConfig, ThermalGovernor};
 
 lazy_static! {
     static ref ARENA: Mutex<PreallocatedArena> = Mutex::new(PreallocatedArena::new());
-    
+
     // Feature 9: Dynamic Thermal Throttling
     static ref GOVERNOR: Mutex<ThermalGovernor> = Mutex::new(ThermalGovernor::new(ThermalConfig::default()));
 }
@@ -29,21 +29,26 @@ pub extern "C" fn datalake_vision_init() -> i32 {
         // Mock initializing the thermal governor to read Android sysfs
         let mut gov = GOVERNOR.lock().unwrap();
         // In real JNI, we might pass a callback to read the battery intent
-        log::info!("Thermal Governor Initialized. Target FPS: {}", gov.target_fps());
-        1 
+        log::info!(
+            "Thermal Governor Initialized. Target FPS: {}",
+            gov.target_fps()
+        );
+        1
     } else {
-        0 
+        0
     }
 }
 
 /// Feature 10: Zero-Copy APK Memory Mapping (mmap)
-/// 
+///
 /// Instead of extracting the ONNX models to disk, we use `AAssetManager_open`
 /// and `AAsset_getBuffer` via the NDK to get a direct memory pointer to the AI model
 /// *while it is still compressed inside the .apk file*.
 /// This saves ~15MB of RAM, making it perfect for 3GB devices.
 #[no_mangle]
-pub extern "C" fn datalake_vision_load_model_zero_copy(asset_manager_ptr: *mut std::ffi::c_void) -> i32 {
+pub extern "C" fn datalake_vision_load_model_zero_copy(
+    asset_manager_ptr: *mut std::ffi::c_void,
+) -> i32 {
     // 1. Cast `asset_manager_ptr` to `*mut ndk_sys::AAssetManager`
     // 2. Open the .onnx asset
     // 3. Call AAsset_getBuffer to get a pointer
@@ -53,15 +58,11 @@ pub extern "C" fn datalake_vision_load_model_zero_copy(asset_manager_ptr: *mut s
 }
 
 #[no_mangle]
-pub extern "C" fn datalake_vision_process_frame(
-    y_ptr: *mut u8,
-    width: i32,
-    height: i32,
-) -> i32 {
+pub extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, height: i32) -> i32 {
     if y_ptr.is_null() {
         return -1;
     }
-    
+
     // Feature 9: Thermal Throttling Check
     {
         let mut gov = GOVERNOR.lock().unwrap();

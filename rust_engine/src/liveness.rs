@@ -3,7 +3,7 @@
 //! Provides both Active and Passive liveness checks.
 
 /// Computes the Laplacian Variance of the image to detect high-frequency micro-textures.
-/// 
+///
 /// Feature 5: Passive Liveness (Micro-Texture Analysis)
 /// A real human face has high-frequency pores and micro-textures.
 /// A printed photo or a digital screen often has a lower variance or distinct Moiré patterns.
@@ -14,7 +14,7 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
     // [ 0  1  0 ]
     // [ 1 -4  1 ]
     // [ 0  1  0 ]
-    
+
     if width < 3 || height < 3 {
         return 0.0;
     }
@@ -26,7 +26,7 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
     for y in 1..(height - 1) {
         for x in 1..(width - 1) {
             let idx = y * width + x;
-            
+
             let center = y_channel[idx] as i32;
             let top = y_channel[idx - width] as i32;
             let bottom = y_channel[idx + width] as i32;
@@ -34,7 +34,7 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
             let right = y_channel[idx + 1] as i32;
 
             let laplacian = (top + bottom + left + right - 4 * center).abs() as f64;
-            
+
             sum += laplacian;
             sum_sq += laplacian * laplacian;
             count += 1.0;
@@ -51,7 +51,7 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
 
 pub fn check_liveness(y_channel: &[u8], width: usize, height: usize) -> bool {
     let variance = calculate_laplacian_variance(y_channel, width, height);
-    
+
     // If the micro-texture variance is too low (e.g., a flat printed photo), reject instantly.
     if variance < 50.0 {
         return false; // Spoof detected!

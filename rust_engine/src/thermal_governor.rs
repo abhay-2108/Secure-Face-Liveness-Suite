@@ -317,9 +317,7 @@ impl ThermalGovernor {
             (ThrottleTier::Moderate, ThrottleTier::Mild) => {
                 temp < self.config.moderate_threshold - hyst
             }
-            (ThrottleTier::Mild, ThrottleTier::Normal) => {
-                temp < self.config.mild_threshold - hyst
-            }
+            (ThrottleTier::Mild, ThrottleTier::Normal) => temp < self.config.mild_threshold - hyst,
             // Multi-tier drops also check hysteresis
             _ => {
                 let threshold_for_new = match new_tier {
@@ -459,7 +457,11 @@ mod tests {
         gov.set_temperature(37.0);
         // Mild tier: skip every 2nd frame
         let processed: u32 = (0..10).map(|_| gov.should_process_frame() as u32).sum();
-        assert!(processed == 5, "Expected 5 processed frames, got {}", processed);
+        assert!(
+            processed == 5,
+            "Expected 5 processed frames, got {}",
+            processed
+        );
     }
 
     #[test]

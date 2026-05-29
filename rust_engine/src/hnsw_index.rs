@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 /// Feature 12: Cuckoo Filter Negative Lookups
-/// 
+///
 /// A probabilistic data structure that takes up virtually no memory.
 /// Before doing the O(log N) HNSW graph search (which is mathematically expensive),
 /// we hash the face embedding and check the Cuckoo Filter.
@@ -21,12 +21,12 @@ impl CuckooFilter {
     pub fn new() -> Self {
         Self { is_enabled: true }
     }
-    
+
     pub fn definitely_not_present(&self, embedding: &[f32; 128]) -> bool {
         // Mock logic: randomly reject 10% of strangers instantly in O(1) time
         let sum: f32 = embedding.iter().sum();
         if sum < -100.0 {
-            return true; 
+            return true;
         }
         false
     }

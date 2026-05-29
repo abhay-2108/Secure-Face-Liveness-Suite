@@ -24,10 +24,7 @@ const ALIGNMENT: usize = 16;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArenaError {
     /// The arena does not have enough remaining capacity for the requested allocation
-    OutOfMemory {
-        requested: usize,
-        available: usize,
-    },
+    OutOfMemory { requested: usize, available: usize },
     /// The arena has already been initialized
     AlreadyInitialized,
     /// The arena size is invalid (zero or too small)
@@ -311,7 +308,11 @@ impl std::fmt::Display for ArenaDiagnostics {
         write!(
             f,
             "Arena: {:.1}% used ({}/{} bytes), HWM: {}, allocs: {}",
-            self.utilization_pct, self.used, self.capacity, self.high_water_mark, self.allocation_count
+            self.utilization_pct,
+            self.used,
+            self.capacity,
+            self.high_water_mark,
+            self.allocation_count
         )
     }
 }
