@@ -122,7 +122,11 @@ pub extern "C" fn datalake_vision_load_model_zero_copy(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn datalake_vision_process_frame(y_ptr: *mut u8, width: i32, height: i32) -> i32 {
+pub unsafe extern "C" fn datalake_vision_process_frame(
+    y_ptr: *mut u8,
+    width: i32,
+    height: i32,
+) -> i32 {
     if y_ptr.is_null() {
         return -1;
     }
