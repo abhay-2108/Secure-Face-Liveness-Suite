@@ -1,0 +1,86 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Description": "NHAI Edge AI - Attendance Sync Backend (SAM Template)",
+    
+    "Globals": {
+        "Function": {
+            "Timeout": 30,
+            "Runtime": "python3.12",
+            "MemorySize": 256,
+            "Environment": {
+                "Variables": {
+                    "DYNAMODB_TABLE_NAME": {"Ref": "AttendanceTable"}
+                }
+            }
+        }
+    },
+    
+    "Resources": {
+        "SyncFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "CodeUri": "lambda/",
+                "Handler": "sync_handler.lambda_handler",
+                "Description": "Processes batched offline attendance sync requests with Ed25519 verification",
+                "Policies": [
+                    {
+                        "DynamoDBCrudPolicy": {
+                            "TableName": {"Ref": "AttendanceTable"}
+                        }
+                    }
+                ],
+                "Events": {
+                    "SyncApi": {
+                        "Type": "Api",
+                        "Properties": {
+                            "Path": "/sync",
+                            "Method": "post"
+                        }
+                    }
+                }
+            }
+        },
+        
+        "AttendanceTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "TableName": "nhai_attendance_events",
+                "BillingMode": "PAY_PER_REQUEST",
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "event_id",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "event_id",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "TimeToLiveSpecification": {
+                    "AttributeName": "ttl",
+                    "Enabled": true
+                }
+            }
+        }
+    },
+    
+    "Outputs": {
+        "SyncApiUrl": {
+            "Description": "API Gateway endpoint URL for the sync function",
+            "Value": {
+                "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/sync"
+            }
+        },
+        "SyncFunctionArn": {
+            "Description": "Sync Lambda Function ARN",
+            "Value": {"Fn::GetAtt": ["SyncFunction", "Arn"]}
+        },
+        "AttendanceTableName": {
+            "Description": "DynamoDB Table Name",
+            "Value": {"Ref": "AttendanceTable"}
+        }
+    }
+}
