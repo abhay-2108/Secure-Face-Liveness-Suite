@@ -10,7 +10,6 @@ export const AuthenticationScreen: React.FC = () => {
   const { 
     isReady, 
     initializeEngine, 
-    frameProcessor, 
     telemetry, 
     livenessPrompt,
     matchId,
