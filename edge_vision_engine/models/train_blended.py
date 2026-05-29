@@ -123,7 +123,7 @@ def main():
     print("\n[3/4] Fine-tuning model on CUDA...")
     model.train()
     
-    epochs = 15
+    epochs = 8
     for epoch in range(epochs):
         running_loss = 0.0
         correct = 0
