@@ -1,0 +1,29 @@
+{
+  "buildFiles": [
+    "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\Abhay Tiwari\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\.cxx\\Debug\\5y6t6u1t\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\Abhay Tiwari\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\.cxx\\Debug\\5y6t6u1t\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "datalake_vision_jni::@6890427a1f51a3e7e1df": {
+      "artifactName": "datalake_vision_jni",
+      "abi": "arm64-v8a",
+      "output": "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\build\\intermediates\\cxx\\Debug\\5y6t6u1t\\obj\\arm64-v8a\\libdatalake_vision_jni.so",
+      "runtimeFiles": [
+        "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\src\\main\\jniLibs\\arm64-v8a\\libdatalake_engine.so"
+      ]
+    }
+  }
+}

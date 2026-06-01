@@ -1,0 +1,3 @@
+X:/react-native-datalake-vision/example/node_modules/react-native-datalake-vision/android/.cxx/Debug/5y6t6u1t/arm64-v8a/CMakeFiles/datalake_vision_jni.dir
+X:/react-native-datalake-vision/example/node_modules/react-native-datalake-vision/android/.cxx/Debug/5y6t6u1t/arm64-v8a/CMakeFiles/edit_cache.dir
+X:/react-native-datalake-vision/example/node_modules/react-native-datalake-vision/android/.cxx/Debug/5y6t6u1t/arm64-v8a/CMakeFiles/rebuild_cache.dir

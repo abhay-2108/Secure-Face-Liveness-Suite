@@ -15,8 +15,10 @@ public class DatalakeVisionModule extends ReactContextBaseJavaModule {
     // --- PRODUCTION NATIVE LOADER ---
     static {
         try {
+            System.loadLibrary("datalake_engine");
             // Load the C++ JNI bridge which links against the Rust engine (.so)
             System.loadLibrary("datalake_vision_jni");
+            com.mrousavy.camera.frameprocessors.FrameProcessorPluginRegistry.addFrameProcessorPlugin("processDatalakeVision", (proxy, options) -> new DatalakeVisionFrameProcessorPlugin(proxy, options));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -43,7 +45,7 @@ public class DatalakeVisionModule extends ReactContextBaseJavaModule {
             if (result == 1) {
                 promise.resolve(true);
             } else {
-                promise.reject("INIT_ERROR", "Failed to initialize Rust memory arena.");
+                promise.reject("INIT_ERROR", "Failed to initialize Rust memory arena. Result Code: " + result);
             }
         } catch (Exception e) {
             promise.reject("INIT_ERROR", e.getMessage());

@@ -16,6 +16,7 @@ export interface FrameResult {
 
 export function useDatalakeVision() {
   const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [livenessPrompt, setLivenessPrompt] = useState<string>('');
   const [matchId, setMatchId] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState({
@@ -30,8 +31,10 @@ export function useDatalakeVision() {
     try {
       await DatalakeVision.initializeEngine();
       setIsReady(true);
+      setError(null);
       setTelemetry((prev) => ({ ...prev, arena: '40MB locked', model: '6.6MB (Standby)' }));
-    } catch (e) {
+    } catch (e: any) {
+      setError(e.message || 'Engine initialization failed');
       console.error('Engine initialization failed', e);
     }
   }, []);
@@ -105,6 +108,7 @@ export function useDatalakeVision() {
     telemetry,
     livenessPrompt,
     matchId,
+    error,
     setLivenessPrompt,
     setMatchId
   };

@@ -1,0 +1,7 @@
+[
+{
+  "directory": "X:/react-native-datalake-vision/example/node_modules/react-native-datalake-vision/android/.cxx/Debug/5y6t6u1t/arm64-v8a",
+  "command": "C:\\Users\\ABHAYT~1\\AppData\\Local\\Android\\Sdk\\ndk\\251~1.893\\TOOLCH~1\\llvm\\prebuilt\\WINDOW~1\\bin\\CLANG_~1.EXE --target=aarch64-none-linux-android23 --sysroot=\"C:/Users/Abhay Tiwari/AppData/Local/Android/Sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/windows-x86_64/sysroot\" -Ddatalake_vision_jni_EXPORTS -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC -std=gnu++17 -o CMakeFiles\\datalake_vision_jni.dir\\src\\main\\cpp\\datalake_vision_jni.cpp.o -c X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\src\\main\\cpp\\datalake_vision_jni.cpp",
+  "file": "X:\\react-native-datalake-vision\\example\\node_modules\\react-native-datalake-vision\\android\\src\\main\\cpp\\datalake_vision_jni.cpp"
+}
+]

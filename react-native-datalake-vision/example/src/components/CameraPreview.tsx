@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Button } from 'react-native';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 
-export const CameraPreview: React.FC = () => {
+interface CameraPreviewProps {
+  frameProcessor?: any;
+}
+
+export const CameraPreview: React.FC<CameraPreviewProps> = ({ frameProcessor }) => {
   const [aeStatus, setAeStatus] = useState('AE/AF: Global Average');
+  const device = useCameraDevice('front');
+  const { hasPermission, requestPermission } = useCameraPermission();
 
   useEffect(() => {
     // Feature 3: Dynamic Hardware Auto-Exposure
@@ -16,16 +23,44 @@ export const CameraPreview: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  if (!hasPermission) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>Camera permission is required.</Text>
+        <Button title="Request Permission" onPress={requestPermission} />
+      </View>
+    );
+  }
+
+  if (device == null) {
+    const devices = Camera.getAvailableCameraDevices();
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>No Camera Device Found (front).</Text>
+        <Text style={styles.permissionText}>Available Devices: {devices.length}</Text>
+        {devices.map((d, i) => (
+          <Text key={i} style={styles.permissionText}>- {d.position} ({d.id})</Text>
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.mockCamera}>
-        {/* Hardware AE/AF Indicator */}
-        <View style={styles.aeIndicator}>
-          <Text style={styles.aeText}>{aeStatus}</Text>
-        </View>
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={true}
+        frameProcessor={frameProcessor}
+      />
+      {/* Hardware AE/AF Indicator */}
+      <View style={styles.aeIndicator}>
+        <Text style={styles.aeText}>{aeStatus}</Text>
+      </View>
 
-        {/* Scanning Reticle */}
-        <View style={styles.reticleContainer}>
+      {/* Scanning Reticle */}
+      <View style={[styles.reticleContainer, StyleSheet.absoluteFill]} pointerEvents="none">
+        <View style={styles.reticleCenter}>
           <View style={[styles.corner, styles.topLeft]} />
           <View style={[styles.corner, styles.topRight]} />
           <View style={[styles.corner, styles.bottomLeft]} />
@@ -40,12 +75,20 @@ const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#050505',
-  },
-  mockCamera: {
-    flex: 1,
-    backgroundColor: '#0a0b10', 
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  permissionContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#050505',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  permissionText: {
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   aeIndicator: {
     position: 'absolute',
@@ -57,6 +100,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 200, 0, 0.5)',
+    zIndex: 10,
   },
   aeText: {
     color: '#ffcc00',
@@ -65,6 +109,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   reticleContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  reticleCenter: {
     width: 250,
     height: 300,
     position: 'relative',

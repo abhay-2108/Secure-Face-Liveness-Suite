@@ -11,17 +11,18 @@
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.74.0",
-    "react-native-vision-camera": "^4.0.0",
     "react-native-datalake-vision": "file:../",
-    "react-native-reanimated": "^3.6.0"
+    "react-native-reanimated": "^3.11.0",
+    "react-native-vision-camera": "^4.7.3",
+    "react-native-worklets-core": "^1.6.3"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-native": "^0.72.0",
-    "typescript": "^5.3.0",
     "@babel/core": "^7.24.0",
     "@babel/runtime": "^7.24.0",
+    "@react-native/metro-config": "^0.74.0",
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.72.0",
     "metro-react-native-babel-preset": "^0.77.0",
-    "@react-native/metro-config": "^0.74.0"
+    "typescript": "^5.3.0"
   }
 }

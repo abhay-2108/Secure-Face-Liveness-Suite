@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableWithoutFeedback, Animated } from 'react-native';
+import { View, StyleSheet, TouchableWithoutFeedback, Animated, Text } from 'react-native';
 import { CameraPreview } from '../components/CameraPreview';
 import { LivenessPromptUI } from '../components/LivenessPromptUI';
 import { TelemetryHUD } from '../components/TelemetryHUD';
@@ -13,8 +13,10 @@ export const AuthenticationScreen: React.FC = () => {
     telemetry, 
     livenessPrompt,
     matchId,
+    error,
     setLivenessPrompt,
-    setMatchId
+    setMatchId,
+    frameProcessor
   } = useDatalakeVision();
   
   const [showTelemetry, setShowTelemetry] = useState(false);
@@ -54,8 +56,14 @@ export const AuthenticationScreen: React.FC = () => {
   return (
     <TouchableWithoutFeedback onPress={() => setShowTelemetry(prev => !prev)} delayPressIn={500}>
       <View style={styles.container}>
-        <CameraPreview />
+        <CameraPreview frameProcessor={frameProcessor} />
         
+        {error && (
+          <View style={styles.errorOverlay}>
+            <Text style={styles.errorText}>Engine Error: {error}</Text>
+          </View>
+        )}
+
         <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslateY }] }]} />
 
         <LivenessPromptUI prompt={livenessPrompt} />
@@ -83,5 +91,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     elevation: 5,
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: '10%',
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 20,
+    zIndex: 100,
+  },
+  errorText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
   }
 });

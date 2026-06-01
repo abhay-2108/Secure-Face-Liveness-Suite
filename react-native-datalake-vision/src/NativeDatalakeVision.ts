@@ -14,28 +14,14 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n';
 
 export interface NativeDatalakeVisionSpec {
-  /**
-   * Initializes the Rust Edge AI Engine and memory arenas.
-   */
-  initializeEngine(): Promise<string>;
-
-  /**
-   * Gets the number of offline records waiting to be synced via CRDT.
-   */
-  getPendingSyncCount(): Promise<number>;
-
-  /**
-   * Generates the Ed25519 signed JSON payload containing all pending records.
-   */
-  generateSyncPayload(): Promise<string>;
-
-  /**
-   * Verifies the cryptographic token returned by the AWS Lambda and purges the ledger.
-   * @param recordIds - JSON array string of record UUIDs.
-   * @param serverToken - The signed purge token from AWS.
-   * @param serverPublicKey - The server's Ed25519 public key.
-   */
-  verifyAndPurge(recordIds: string, serverToken: string, serverPublicKey: string): Promise<boolean>;
+  initialize(configJson: string): Promise<string>;
+  searchIdentity(embeddingJson: string): Promise<string>;
+  enrollIdentity(label: string, embeddingJson: string): Promise<string>;
+  getSyncStatus(): Promise<string>;
+  getMetrics(): Promise<string>;
+  forcePurge(): Promise<string>;
+  triggerSync(): Promise<void>;
+  shutdown(): Promise<void>;
 }
 
 const NativeDatalakeVision: NativeDatalakeVisionSpec =
