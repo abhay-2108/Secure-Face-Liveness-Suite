@@ -1,5 +1,5 @@
 /**
- * @module react-native-OpenFace-vision
+ * @module react-native-open-face
  *
  * Edge AI facial recognition and liveness detection for React Native.
  * Powered by the OpenFace 3.0 Rust engine — zero-copy frame processing,

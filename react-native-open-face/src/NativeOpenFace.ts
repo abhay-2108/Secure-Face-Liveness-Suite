@@ -9,7 +9,7 @@
 import { NativeModules, Platform } from 'react-native';
 
 const LINKING_ERROR =
-  `The package 'react-native-OpenFace-vision' doesn't seem to be linked. Make sure:\n\n` +
+  `The package 'react-native-open-face' doesn't seem to be linked. Make sure:\n\n` +
   Platform.select({ ios: '- You ran `pod install` in the ios directory\n', default: '' }) +
   '- You rebuilt the app after installing the package\n';
 

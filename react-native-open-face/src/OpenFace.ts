@@ -8,7 +8,7 @@
  *
  * @example
  * ```typescript
- * import { OpenFace } from 'react-native-OpenFace-vision';
+ * import { OpenFace } from 'react-native-open-face';
  *
  * // Initialize engine
  * await OpenFace.initialize({

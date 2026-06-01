@@ -1,4 +1,4 @@
-#![allow(non_snake_case, dead_code, unused_imports, unused_variables)]
+#![allow(non_snake_case, dead_code, unused_imports, unused_variables, clippy::not_unsafe_ptr_arg_deref, clippy::missing_safety_doc)]
 
 mod crypto;
 mod hnsw_index;
@@ -102,12 +102,16 @@ struct EngineMetricsInternal {
 // FFI: Initialize the engine with a JSON config from JS
 // ============================================================================
 #[no_mangle]
-pub extern "C" fn open_face_initialize(config_json: *const std::os::raw::c_char) -> *mut std::os::raw::c_char {
+pub extern "C" fn open_face_initialize(
+    config_json: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_char {
     let config_str = unsafe {
         if config_json.is_null() {
             return make_json_error("Null config pointer");
         }
-        std::ffi::CStr::from_ptr(config_json).to_string_lossy().to_string()
+        std::ffi::CStr::from_ptr(config_json)
+            .to_string_lossy()
+            .to_string()
     };
 
     // Parse the config JSON
@@ -134,7 +138,10 @@ pub extern "C" fn open_face_initialize(config_json: *const std::os::raw::c_char)
 
     // Initialize thermal governor
     let gov = GOVERNOR.lock().unwrap();
-    log::info!("Thermal Governor Initialized. Target FPS: {}", gov.target_fps());
+    log::info!(
+        "Thermal Governor Initialized. Target FPS: {}",
+        gov.target_fps()
+    );
 
     // Initialize ledger if path is provided
     if !cfg.ledger_db_path.is_empty() {
@@ -146,7 +153,11 @@ pub extern "C" fn open_face_initialize(config_json: *const std::os::raw::c_char)
     {
         let mut m = METRICS.lock().unwrap();
         m.arena_locked_mb = cfg.arena_size as f64;
-        m.sync_status = if cfg.offline_mode { "offline".to_string() } else { "synced".to_string() };
+        m.sync_status = if cfg.offline_mode {
+            "offline".to_string()
+        } else {
+            "synced".to_string()
+        };
         m.index_size = HNSW.lock().unwrap().nodes.len();
     }
 
@@ -186,7 +197,9 @@ pub extern "C" fn open_face_search_identity(
         if embedding_json.is_null() {
             return make_json_error("Null embedding pointer");
         }
-        std::ffi::CStr::from_ptr(embedding_json).to_string_lossy().to_string()
+        std::ffi::CStr::from_ptr(embedding_json)
+            .to_string_lossy()
+            .to_string()
     };
 
     let embedding_vec: Vec<f32> = match serde_json::from_str(&json_str) {
@@ -195,7 +208,10 @@ pub extern "C" fn open_face_search_identity(
     };
 
     if embedding_vec.len() != 128 {
-        return make_json_error(&format!("Expected 128-dim embedding, got {}", embedding_vec.len()));
+        return make_json_error(&format!(
+            "Expected 128-dim embedding, got {}",
+            embedding_vec.len()
+        ));
     }
 
     let mut embedding = [0.0f32; 128];
@@ -243,13 +259,21 @@ pub extern "C" fn open_face_enroll_identity(
     embedding_json: *const std::os::raw::c_char,
 ) -> *mut std::os::raw::c_char {
     let label_str = unsafe {
-        if label.is_null() { return make_json_error("Null label"); }
-        std::ffi::CStr::from_ptr(label).to_string_lossy().to_string()
+        if label.is_null() {
+            return make_json_error("Null label");
+        }
+        std::ffi::CStr::from_ptr(label)
+            .to_string_lossy()
+            .to_string()
     };
 
     let json_str = unsafe {
-        if embedding_json.is_null() { return make_json_error("Null embedding"); }
-        std::ffi::CStr::from_ptr(embedding_json).to_string_lossy().to_string()
+        if embedding_json.is_null() {
+            return make_json_error("Null embedding");
+        }
+        std::ffi::CStr::from_ptr(embedding_json)
+            .to_string_lossy()
+            .to_string()
     };
 
     let embedding_vec: Vec<f32> = match serde_json::from_str(&json_str) {
@@ -280,7 +304,10 @@ pub extern "C" fn open_face_enroll_identity(
                         .as_secs(),
                     latitude: 0.0,
                     longitude: 0.0,
-                    embedding_hash: format!("{:x}", embedding_vec.iter().map(|x| *x as u32).sum::<u32>()),
+                    embedding_hash: format!(
+                        "{:x}",
+                        embedding_vec.iter().map(|x| *x as u32).sum::<u32>()
+                    ),
                     encrypted_payload: String::new(),
                     signature: String::new(),
                 };
@@ -289,17 +316,11 @@ pub extern "C" fn open_face_enroll_identity(
 
             METRICS.lock().unwrap().index_size = hnsw.nodes.len();
 
-            let json = format!(
-                r#"{{"success":true,"identityId":"{}"}}"#,
-                identity_id
-            );
+            let json = format!(r#"{{"success":true,"identityId":"{}"}}"#, identity_id);
             make_c_string(&json)
         }
         Err(e) => {
-            let json = format!(
-                r#"{{"success":false,"identityId":"","error":"{}"}}"#,
-                e
-            );
+            let json = format!(r#"{{"success":false,"identityId":"","error":"{}"}}"#, e);
             make_c_string(&json)
         }
     }
@@ -319,7 +340,11 @@ pub extern "C" fn open_face_get_sync_status() -> *mut std::os::raw::c_char {
     };
 
     let cfg = CONFIG.lock().unwrap();
-    let mode = if cfg.offline_mode { "offline" } else { "synced" };
+    let mode = if cfg.offline_mode {
+        "offline"
+    } else {
+        "synced"
+    };
 
     let json = format!(
         r#"{{"pendingCount":{},"syncedCount":0,"totalCount":{},"isConnected":{},"lastSyncTimestamp":null,"mode":"{}"}}"#,
@@ -336,9 +361,16 @@ pub extern "C" fn open_face_get_metrics() -> *mut std::os::raw::c_char {
     let m = METRICS.lock().unwrap();
     let json = format!(
         r#"{{"arenaLockedMb":{:.1},"modelSizeMb":{:.1},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2},"detectionLatencyMs":{:.2},"livenessLatencyMs":{:.2},"recognitionLatencyMs":{:.2},"preprocessLatencyMs":{:.2},"syncStatus":"{}","indexSize":{}}}"#,
-        m.arena_locked_mb, m.model_size_mb, m.hnsw_latency_ms,
-        m.inference_latency_ms, m.detection_latency_ms, m.liveness_latency_ms,
-        m.recognition_latency_ms, m.preprocess_latency_ms, m.sync_status, m.index_size
+        m.arena_locked_mb,
+        m.model_size_mb,
+        m.hnsw_latency_ms,
+        m.inference_latency_ms,
+        m.detection_latency_ms,
+        m.liveness_latency_ms,
+        m.recognition_latency_ms,
+        m.preprocess_latency_ms,
+        m.sync_status,
+        m.index_size
     );
     make_c_string(&json)
 }
@@ -455,9 +487,7 @@ pub extern "C" fn open_face_load_model_zero_copy(
 // Fallback for non-Android targets (e.g. iOS or Simulator testing)
 #[cfg(not(target_os = "android"))]
 #[no_mangle]
-pub extern "C" fn open_face_load_model_zero_copy(
-    _asset_manager_ptr: *mut std::ffi::c_void,
-) -> i32 {
+pub extern "C" fn open_face_load_model_zero_copy(_asset_manager_ptr: *mut std::ffi::c_void) -> i32 {
     log::warn!("Zero-Copy loading is only supported on Android via NDK AAssetManager in this implementation.");
     0
 }
@@ -479,7 +509,9 @@ pub unsafe extern "C" fn open_face_process_frame(
     stride: i32,
 ) -> *mut std::os::raw::c_char {
     if y_ptr.is_null() {
-        let err_json = std::ffi::CString::new(r#"{"faceDetected":false,"error":"Null frame buffer"}"#).unwrap();
+        let err_json =
+            std::ffi::CString::new(r#"{"faceDetected":false,"error":"Null frame buffer"}"#)
+                .unwrap();
         return err_json.into_raw();
     }
 
@@ -487,7 +519,10 @@ pub unsafe extern "C" fn open_face_process_frame(
     {
         let mut gov = GOVERNOR.lock().unwrap();
         if !gov.should_process_frame() {
-            let throttled_json = std::ffi::CString::new(r#"{"faceDetected":false,"error":"Thermal Throttling Active"}"#).unwrap();
+            let throttled_json = std::ffi::CString::new(
+                r#"{"faceDetected":false,"error":"Thermal Throttling Active"}"#,
+            )
+            .unwrap();
             return throttled_json.into_raw();
         }
     }
@@ -532,21 +567,30 @@ pub unsafe extern "C" fn open_face_process_frame(
 
         if let Some((id, similarity)) = results.first() {
             if *similarity >= match_threshold as f32 {
-                (format!(
-                    r#","match":{{"matched":true,"similarity":{:.4},"identityId":"{}","identityLabel":"{}","searchLatencyMs":{:.2}}}"#,
-                    similarity, id, id, elapsed
-                ), elapsed)
+                (
+                    format!(
+                        r#","match":{{"matched":true,"similarity":{:.4},"identityId":"{}","identityLabel":"{}","searchLatencyMs":{:.2}}}"#,
+                        similarity, id, id, elapsed
+                    ),
+                    elapsed,
+                )
             } else {
-                (format!(
-                    r#","match":{{"matched":false,"similarity":{:.4},"identityId":"","identityLabel":"","searchLatencyMs":{:.2}}}"#,
-                    similarity, elapsed
-                ), elapsed)
+                (
+                    format!(
+                        r#","match":{{"matched":false,"similarity":{:.4},"identityId":"","identityLabel":"","searchLatencyMs":{:.2}}}"#,
+                        similarity, elapsed
+                    ),
+                    elapsed,
+                )
             }
         } else {
-            (format!(
-                r#","match":{{"matched":false,"similarity":0.0,"identityId":"","identityLabel":"","searchLatencyMs":{:.2}}}"#,
-                elapsed
-            ), elapsed)
+            (
+                format!(
+                    r#","match":{{"matched":false,"similarity":0.0,"identityId":"","identityLabel":"","searchLatencyMs":{:.2}}}"#,
+                    elapsed
+                ),
+                elapsed,
+            )
         }
     } else {
         (r#","match":null"#.to_string(), 0.0)
@@ -568,9 +612,23 @@ pub unsafe extern "C" fn open_face_process_frame(
         r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":false,"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
         is_live,
         normalized_score,
-        if liveness_passed { "passed" } else { "in_progress" },
-        if !is_live { "hold_still" } else if !liveness_passed { "blink" } else { "none" },
-        if liveness_passed { 1.0 } else { normalized_score },
+        if liveness_passed {
+            "passed"
+        } else {
+            "in_progress"
+        },
+        if !is_live {
+            "hold_still"
+        } else if !liveness_passed {
+            "blink"
+        } else {
+            "none"
+        },
+        if liveness_passed {
+            1.0
+        } else {
+            normalized_score
+        },
         match_json,
         total_ms,
         preprocess_ms,
