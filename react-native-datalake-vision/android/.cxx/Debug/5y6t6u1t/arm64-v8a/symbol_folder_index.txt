@@ -1,1 +1,0 @@
-X:\react-native-datalake-vision\example\node_modules\react-native-datalake-vision\android\build\intermediates\cxx\Debug\5y6t6u1t\obj\arm64-v8a

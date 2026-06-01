@@ -55,7 +55,7 @@ pub fn detect_time_tampering(last_rtc: u64, last_monotonic: u64, current_monoton
 pub fn encrypt_ledger(payload: &[u8]) -> Vec<u8> {
     let key = Key::from(generate_hardware_fingerprint());
     let cipher = ChaCha20Poly1305::new(&key);
-    let nonce = Nonce::from_slice(b"datalake-n-1"); // 12-bytes
+    let nonce = Nonce::from_slice(b"OpenFace-n-1"); // 12-bytes
     cipher.encrypt(nonce, payload).unwrap()
 }
 
@@ -68,4 +68,33 @@ pub fn verify_purge_token(public_key_bytes: &[u8], message: &[u8], signature_byt
         }
     }
     false
+}
+
+use aes_gcm::{Aes256Gcm, Key as AesKey, Nonce as AesNonce};
+use std::fs::File;
+use std::io::Read;
+
+/// Decrypts the ONNX file dynamically in memory.
+pub fn load_and_decrypt_model(file_path: &str, encryption_key: &[u8; 32]) -> Result<Vec<u8>, String> {
+    // 1. Read encrypted bytes from local storage
+    let mut file = File::open(file_path).map_err(|e| e.to_string())?;
+    let mut encrypted_data = Vec::new();
+    file.read_to_end(&mut encrypted_data).map_err(|e| e.to_string())?;
+
+    if encrypted_data.len() < 12 {
+        return Err("Invalid encrypted file length".to_string());
+    }
+
+    // 2. Extract the 12-byte nonce (usually prepended to the file)
+    let (nonce_bytes, cipher_bytes) = encrypted_data.split_at(12);
+    let key = AesKey::<Aes256Gcm>::from_slice(encryption_key);
+    let nonce = AesNonce::from_slice(nonce_bytes);
+    let cipher = Aes256Gcm::new(key);
+
+    // 3. Decrypt directly into a memory buffer
+    let decrypted_bytes = cipher.decrypt(nonce, cipher_bytes)
+        .map_err(|_| "Failed to decrypt model weights! Tampering detected.".to_string())?;
+
+    // The decrypted_bytes vector can now be fed into tract-onnx
+    Ok(decrypted_bytes)
 }

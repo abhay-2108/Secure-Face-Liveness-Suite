@@ -1,0 +1,83 @@
+{
+  "name": "react-native-open-face",
+  "version": "1.0.0",
+  "description": "Edge AI facial recognition and liveness detection for React Native — powered by the OpenFace 3.0 Rust engine",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "react-native-open-face.podspec",
+    "README.md",
+    "LICENSE",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!android/build",
+    "!android/.gradle",
+    "!android/.cxx",
+    "!ios/build",
+    "!example"
+  ],
+  "scripts": {
+    "typescript": "tsc --noEmit",
+    "prepare": "bob build",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "build": "bob build",
+    "example": "cd example && npx react-native run-android"
+  },
+  "keywords": [
+    "react-native",
+    "face-recognition",
+    "liveness-detection",
+    "edge-ai",
+    "OpenFace",
+    "nhai",
+    "biometric",
+    "offline-first"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenFace-vision/react-native-open-face"
+  },
+  "author": "OpenFace 3.0 <team@OpenFace.ai>",
+  "license": "MIT",
+  "homepage": "https://github.com/OpenFace-vision/react-native-open-face#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.72.0",
+    "react": "18.2.0",
+    "react-native": "0.74.0",
+    "react-native-builder-bob": "^0.23.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.72.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "react-native-vision-camera": "^4.7.3"
+  }
+}

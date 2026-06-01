@@ -1,72 +1,82 @@
-# Python
+# ==============================================================================
+# OpenFace Global Git Ignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Machine Learning & Python (edge_vision_engine)
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual Environment
 venv/
 env/
-ENV/
 .env
 
-# Checkpoints & Weights (All model weights live on HuggingFace Hub: raj0120/edge-face-pipeline)
+# Checkpoints & Weights
 *.pt
 *.pth
 *.tflite
 *.onnx
 checkpoints/
-edge_vision_engine/models/weights/
-edge_vision_engine/checkpoints/
+models/weights/
 optimized_weights/
 models_onnx/
-
-# Hugging Face Hub download cache folders (auto-created by hf_hub_download)
 **/.cache/
 
-# Data
-data/
+# ------------------------------------------------------------------------------
+# 2. Rust Engine
+# ------------------------------------------------------------------------------
+rust_engine/target/
+**/*.rs.bk
+Cargo.lock
 
-# C++ Compiled Executables & Libraries (legacy)
+# ------------------------------------------------------------------------------
+# 3. React Native (react-native-open-face)
+# ------------------------------------------------------------------------------
+react-native-open-face/node_modules/
+react-native-open-face/lib/
+react-native-open-face/example/node_modules/
+.yarn/
+*.tgz
+
+# Android
+react-native-open-face/android/build/
+react-native-open-face/android/.cxx/
+react-native-open-face/android/.gradle/
+react-native-open-face/example/android/build/
+react-native-open-face/example/android/.gradle/
+react-native-open-face/example/android/app/build/
+**/local.properties
+*.keystore
+!debug.keystore
+
+# iOS
+react-native-open-face/ios/build/
+react-native-open-face/example/ios/build/
+react-native-open-face/example/ios/Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# ------------------------------------------------------------------------------
+# 4. Native Compiled Binaries
+# ------------------------------------------------------------------------------
+*.so
+*.a
 *.exe
 *.o
 *.obj
 *.lib
 *.dll
 *.dylib
-
-# Rust
-rust_engine/target/
-**/*.rs.bk
-
-# React Native
-react-native-datalake-vision/node_modules/
-react-native-datalake-vision/example/node_modules/
-react-native-datalake-vision/example/android/build/
-react-native-datalake-vision/example/android/.gradle/
-react-native-datalake-vision/example/android/app/build/
-react-native-datalake-vision/example/ios/build/
-react-native-datalake-vision/example/ios/Pods/
-react-native-datalake-vision/android/build/
-react-native-datalake-vision/ios/build/
-react-native-datalake-vision/lib/
-
-# Native compiled binaries (built by CI/CD)
-*.so
-*.a
 **/jniLibs/
 
-# Node
-node_modules/
-*.tgz
-.yarn/
-
-# IDE
+# ------------------------------------------------------------------------------
+# 5. OS & IDE
+# ------------------------------------------------------------------------------
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
