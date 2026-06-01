@@ -37,17 +37,35 @@ The Edge AI space is plagued by three massive problems: Memory Fragmentation, Th
 OpenFace solves all of these by stripping away the operating system's garbage collector and strictly separating execution across a robust 4-Tier Pipeline.
 
 ```mermaid
-flowchart LR
-    A[Raw Camera Frame] -->|JSI Zero-Copy| B(libyuv Bilinear Resize)
-    B --> C{Liveness Engine}
-    C -->|Spoof Detected| D[Reject]
-    C -->|Live Human| E[GhostFaceNet]
-    E --> F[(HNSW Vector DB)]
-    F -->|Matched ID| G[Encrypted Ledger]
-    
-    style C fill:#ff4444,stroke:#333,color:#fff
-    style E fill:#00C851,stroke:#333,color:#fff
-    style G fill:#000,stroke:#dea584,stroke-width:2px,color:#fff
+flowchart TB
+    subgraph Tier 1: Orchestration Layer
+        A[VisionCamera Worklet] -->|60 FPS Hardware Buffer| B(JSI Zero-Copy Bridge)
+    end
+
+    subgraph Tier 2: C++ Memory Bridge
+        B -->|Raw Y-Plane Pointer| C(libyuv Bilinear Downscale)
+        C -->|112x112 Tensor| D((Rust FFI Interface))
+    end
+
+    subgraph Tier 3: Rust Lock Arena & AI
+        D --> E{Liveness Engine}
+        E -->|Laplacian Variance| F(Focal Blur Check)
+        E -->|Mini-FAS-Net| G(Fourier Spoof Check)
+        F -->|Failed| REJ[Reject: Bad Lighting/Blur]
+        G -->|Failed| REJ2[Reject: 2D Screen/Photo]
+        
+        G -->|Live Human Passed| H[GhostFaceNet Extraction]
+        H -->|128-D FP32 Embedding| I[(HNSW Vector Index)]
+    end
+
+    subgraph Tier 4: Zero-Trust Cryptography
+        I -->|Identity Match| J{ChaCha20 Decryptor}
+        J --> K[Encrypted SQLite Ledger]
+    end
+
+    style E fill:#ff4444,stroke:#333,color:#fff
+    style H fill:#00C851,stroke:#333,color:#fff
+    style K fill:#000,stroke:#dea584,stroke-width:2px,color:#fff
 ```
 
 | 🧩 Tier | Technology | Responsibility | Hardware Intercept |

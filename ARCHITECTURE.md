@@ -17,39 +17,60 @@ By pushing the boundaries of memory management and utilizing a strict 4-tier sep
 ## 📊 High-Level System Architecture
 
 ```mermaid
-graph TD
-    subgraph Tier 1: React Native UI
-        UI[React Declarative State]
-        W[Reanimated 3 Physics]
+flowchart TD
+    %% TIER 1
+    subgraph T1 [Tier 1: React Native UI & Camera]
+        UI[Declarative React State]
+        W[Reanimated 3 Shared Values]
         VC[VisionCamera Frame Processor]
+        UI <--> W
+        VC -->|Frame Dropped| VC
     end
 
-    subgraph Tier 2: The Native JSI Bridge
-        JSI[Zero-Copy Pointer Bridge]
-        YUV[libyuv: High-Speed Bilinear Resizer]
-        VC -- "Hardware ByteBuffer" --> JSI
-        JSI -- "Raw YUV Plane" --> YUV
+    %% TIER 2
+    subgraph T2 [Tier 2: The Native JSI/JNI Bridge]
+        JSI[Zero-Copy Pointer Extractor]
+        YUV[libyuv: High-Speed Resizer]
+        VC -- "Hardware ByteBuffer (No Base64)" --> JSI
+        JSI -- "Raw YUV Array" --> YUV
     end
 
-    subgraph Tier 3: Rust Inference Engine
-        AR[40MB Lock Arena]
-        TG[Dynamic Thermal Governor]
-        TRACT[Tract-ONNX SIMD Math]
-        YUV -- "Downscaled Bytes" --> AR
-        AR <--> TRACT
+    %% TIER 3
+    subgraph T3 [Tier 3: Rust Inference & Lock Arena]
+        direction TB
+        AR[40MB Statically Allocated Lock Arena]
+        TG[Thermal Governor: Reads /sys/class/thermal/]
+        
+        subgraph AI [Tract-ONNX Inference]
+            LIV[Mini-FAS-Net: Liveness & Spoof Check]
+            GFN[GhostFaceNet: Identity Extraction]
+            LIV -->|Passed| GFN
+        end
+        
+        YUV -- "112x112 Downscaled Tensor" --> AR
+        AR <--> AI
+        TG -.->|Throttles| AI
     end
 
-    subgraph Tier 4: Cryptography & Storage
-        CF[Cuckoo Filter Fast-Reject]
-        LEDGER[ChaCha20-Poly1305 Ledger]
-        TRACT -- "Identity Embedding" --> CF
-        CF -- "Match" --> LEDGER
+    %% TIER 4
+    subgraph T4 [Tier 4: Zero-Trust Cryptography]
+        CF[HNSW Fast-Reject Index]
+        LEDGER[(ChaCha20-Poly1305 Ledger)]
+        GFN -- "128-D Embedding" --> CF
+        CF -- "High Confidence Match" --> LEDGER
     end
 
-    style UI fill:#61dafb,stroke:#333,stroke-width:2px,color:#000
-    style JSI fill:#00599C,stroke:#333,stroke-width:2px,color:#fff
-    style AR fill:#dea584,stroke:#333,stroke-width:2px,color:#000
-    style LEDGER fill:#000000,stroke:#dea584,stroke-width:2px,color:#fff
+    %% STYLING
+    style T1 fill:#1a1a1a,stroke:#61dafb,stroke-width:2px
+    style T2 fill:#1a1a1a,stroke:#00599C,stroke-width:2px
+    style T3 fill:#1a1a1a,stroke:#dea584,stroke-width:2px
+    style T4 fill:#1a1a1a,stroke:#ff4444,stroke-width:2px
+    
+    style UI fill:#61dafb,stroke:#333,color:#000
+    style AR fill:#dea584,stroke:#333,color:#000
+    style LEDGER fill:#000,stroke:#dea584,stroke-width:2px,color:#fff
+    style LIV fill:#ff4444,stroke:#333,color:#fff
+    style GFN fill:#00C851,stroke:#333,color:#fff
 ```
 
 ---
