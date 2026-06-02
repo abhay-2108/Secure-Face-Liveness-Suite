@@ -23,15 +23,18 @@ jobs:
         cache: gradle
 
     - name: Setup Android NDK
+      id: setup-ndk
       uses: nttld/setup-ndk@2817442ee7c3346c1eb7d2ec60263c93206ba14f # v1
       with:
-        ndk-version: '25.2.9519653'
+        ndk-version: r26b
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
     - name: Build Rust Engine (Android)
       working-directory: rust_engine
+      env:
+        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
       run: |
         cargo install cargo-ndk
         rustup target add aarch64-linux-android armv7-linux-androideabi
@@ -53,10 +56,22 @@ jobs:
       working-directory: react-native-open-face/example
       run: yarn install
 
+    - name: Set up Python 3.12
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: '3.12'
+
+    - name: Download HuggingFace Models
+      working-directory: react-native-open-face/android
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: python download_hf_models.py
+
     - name: Build Android APK
       working-directory: react-native-open-face/example/android
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
       run: |
         chmod +x ./gradlew
         ./gradlew assembleDebug --no-daemon
