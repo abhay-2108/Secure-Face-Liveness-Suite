@@ -80,3 +80,6 @@ react-native-open-face/example/ios/Pods/
 *~
 .DS_Store
 Thumbs.db
+
+data/
+react-native-datalake-vision/
