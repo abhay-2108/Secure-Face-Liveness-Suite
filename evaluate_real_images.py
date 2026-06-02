@@ -69,14 +69,14 @@ def main():
     _ensure("ghostfacenet_epoch_3.pt",     f"{CHECKPOINT_DIR}/ghostfacenet_epoch_3.pt")
 
     detector = LinzaerDetectorRFB().to(device)
-    detector.load_state_dict(torch.load(f"{WEIGHTS_DIR}/linzaer_version_rfb_320.pth", map_location=device))
+    detector.load_state_dict(torch.load(f"{WEIGHTS_DIR}/linzaer_version_rfb_320.pth", map_location=device, weights_only=True))
     detector.eval()
 
     liveness = MiniFASNetV1SE().to(device)
-    liveness.load_state_dict(torch.load(f"{WEIGHTS_DIR}/mini_fas_net_v1se.pth", map_location=device))
+    liveness.load_state_dict(torch.load(f"{WEIGHTS_DIR}/mini_fas_net_v1se.pth", map_location=device, weights_only=True))
     liveness.eval()
 
-    ckpt = torch.load(f"{CHECKPOINT_DIR}/ghostfacenet_epoch_3.pt", map_location=device)
+    ckpt = torch.load(f"{CHECKPOINT_DIR}/ghostfacenet_epoch_3.pt", map_location=device, weights_only=True)
     recognizer = GhostFaceNetS(embedding_size=128).to(device)
     recognizer.load_state_dict(ckpt["model_state_dict"])
     recognizer.eval()

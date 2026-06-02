@@ -13,10 +13,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1
       with:
         ruby-version: '3.2'
         bundler-cache: true
@@ -27,4 +27,4 @@ jobs:
     - name: Lint Podspec (Compile Library)
       working-directory: react-native-open-face
       # We skip dependencies to avoid needing a full RN app just for linting
-      run: pod lib lint OpenFace.podspec --allow-warnings --skip-import-validation
+      run: pod lib lint react-native-open-face.podspec --allow-warnings --skip-import-validation

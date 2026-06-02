@@ -100,7 +100,7 @@ def main():
     if os.path.exists(CHECKPOINT_PATH):
         try:
             print("      Loading existing checkpoint weights as baseline...")
-            ckpt = torch.load(CHECKPOINT_PATH, map_location=device)
+            ckpt = torch.load(CHECKPOINT_PATH, map_location=device, weights_only=True)
             # Filter state dict keys in case they differ
             model.load_state_dict(ckpt["model_state_dict"])
             print("      Existing weights successfully loaded.")

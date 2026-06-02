@@ -1,4 +1,4 @@
-﻿"""
+"""
 pipeline.py — NHAI Edge AI Pipeline Utility
 ============================================
 Single entry-point for:
@@ -96,7 +96,7 @@ def validate_pipeline():
     detector_path = os.path.join(WEIGHTS_DIR, "linzaer_version_rfb_320.pth")
     _download_file("linzaer_version_rfb_320.pth", detector_path)
     detector = LinzaerDetectorRFB().to(device)
-    detector.load_state_dict(torch.load(detector_path, map_location=device))
+    detector.load_state_dict(torch.load(detector_path, map_location=device, weights_only=True))
     detector.eval()
     print(f"  [READY]   {detector_path}")
 
@@ -105,7 +105,7 @@ def validate_pipeline():
     liveness_path = os.path.join(WEIGHTS_DIR, "mini_fas_net_v1se.pth")
     _download_file("mini_fas_net_v1se.pth", liveness_path)
     liveness = MiniFASNetV1SE().to(device)
-    liveness.load_state_dict(torch.load(liveness_path, map_location=device))
+    liveness.load_state_dict(torch.load(liveness_path, map_location=device, weights_only=True))
     liveness.eval()
     print(f"  [READY]   {liveness_path}")
 
@@ -114,7 +114,7 @@ def validate_pipeline():
     recognizer_path = os.path.join(CHECKPOINT_DIR, "ghostfacenet_epoch_3.pt")
     _download_file("ghostfacenet_epoch_3.pt", recognizer_path)
     recognizer = GhostFaceNetS(embedding_size=128).to(device)
-    checkpoint = torch.load(recognizer_path, map_location=device)
+    checkpoint = torch.load(recognizer_path, map_location=device, weights_only=True)
     recognizer.load_state_dict(checkpoint["model_state_dict"])
     recognizer.eval()
     print(f"  [READY]   {recognizer_path}")
