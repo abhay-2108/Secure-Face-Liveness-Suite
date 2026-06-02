@@ -125,6 +125,7 @@ pub fn process_screen_flash(y_channel: &[u8], width: usize, height: usize, flash
         // Calculate spatial variance of difference image
         let mut sum_sq_diff = 0.0;
         let mut specular_saturated = 0;
+        #[allow(clippy::needless_range_loop)]
         for i in 0..(64 * 64) {
             let d = diff[i];
             sum_sq_diff += (d - mean_diff) * (d - mean_diff);
@@ -205,6 +206,7 @@ pub fn track_jitter_optical_flow(y_channel: &[u8], width: usize, height: usize) 
         let prev = &history[step];
         let curr = &history[step + 1];
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..5 {
             let px = p[step][i].0.round() as i32;
             let py = p[step][i].1.round() as i32;
@@ -246,8 +248,8 @@ pub fn track_jitter_optical_flow(y_channel: &[u8], width: usize, height: usize) 
             };
 
             // Clamp velocity to avoid giant noise spikes
-            let u_clamped = u.max(-5.0).min(5.0);
-            let v_clamped = v.max(-5.0).min(5.0);
+            let u_clamped = u.clamp(-5.0, 5.0);
+            let v_clamped = v.clamp(-5.0, 5.0);
 
             p[step + 1][i] = (p[step][i].0 + u_clamped, p[step][i].1 + v_clamped);
         }

@@ -448,7 +448,7 @@ pub extern "C" fn open_face_load_model_zero_copy(
             return 0;
         }
 
-        let mut load_model = |filename: &str| -> Option<TractModel> {
+        let load_model = |filename: &str| -> Option<TractModel> {
             let c_filename = std::ffi::CString::new(filename).unwrap();
             let asset = AAssetManager_open(mgr, c_filename.as_ptr(), AASSET_MODE_BUFFER as i32);
             if asset.is_null() {
@@ -594,9 +594,7 @@ pub unsafe extern "C" fn open_face_process_frame(
 
     // Sensor Fusion Liveness Score
     let texture_score = (variance / 1000.0).min(1.0);
-    let liveness_score = (texture_score * 0.3 + jitter_score * 0.4 + flash_score * 0.3)
-        .min(1.0)
-        .max(0.0);
+    let liveness_score = (texture_score * 0.3 + jitter_score * 0.4 + flash_score * 0.3).clamp(0.0, 1.0);
 
     // 3. Determine liveness status and challenge
     let cfg = CONFIG.lock().unwrap();
@@ -716,12 +714,9 @@ pub unsafe extern "C" fn open_face_process_frame(
         } else {
             "in_progress"
         },
-        if liveness_passed {
-            "none" // Success! Stop challenging
-        } else if !texture_passed || !jitter_passed {
-            "none" // Let it fail without challenges
-        } else if flash_state == -1 && is_live {
-            "none" // Back Camera Mode: Supervisor present, no active challenge needed
+        if liveness_passed || !texture_passed || !jitter_passed || (flash_state == -1 && is_live) {
+            "none" // Success, Fail, or Supervisor mode (no challenges)
+
         } else if flash_state == 0 && is_live {
             "blink" // Front Camera Mode: Tier 3 ready, UI should ask for closed eyes
         } else if !flash_passed {

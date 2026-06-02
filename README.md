@@ -21,8 +21,6 @@
   <h3>⬇️ Download & Test the App</h3>
   <p>
     <a href="link-to-your-android-apk"><img src="https://img.shields.io/badge/Download-Android%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" /></a>
-    &nbsp;&nbsp;
-    <a href="link-to-your-ios-ipa"><img src="https://img.shields.io/badge/Download-iOS%20IPA-000000?style=for-the-badge&logo=apple&logoColor=white" /></a>
   </p>
   <p><i>Note: Please replace the placeholder links above with the actual release URLs after compiling the binaries.</i></p>
 
@@ -142,15 +140,12 @@ To truly understand how this engine bypasses memory fragmentation and serializat
 To build and run the provided React Native example app natively on your device:
 
 ```bash
-cd react-native-open-face/example
+cd react-native-open-face/aegis-app
 yarn install
 
 # Run on Android Hardware
 yarn android
 
-# Run on iOS Hardware
-cd ios && pod install && cd ..
-yarn ios
 ```
 
 > **Note:** The example application will only run on physical hardware. Simulators do not support the raw camera JSI bridging required by OpenFace.

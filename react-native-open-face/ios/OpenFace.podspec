@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.homepage     = "https://github.com/abhay-2108/Secure-Face-Liveness-Suite"
   s.license      = { :type => "MIT", :file => "../LICENSE" }
   s.author       = { "Aegis Team" => "" }
-  s.platform     = :ios, "15.0"
+  s.platform     = :ios, "12.0"
   s.source       = { :git => "https://github.com/abhay-2108/Secure-Face-Liveness-Suite.git", :tag => s.version }
 
   s.source_files = "*.{h,m,mm}"

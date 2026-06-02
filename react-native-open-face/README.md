@@ -23,13 +23,7 @@ npm install react-native-open-face
 yarn add react-native-open-face
 ```
 
-### iOS Setup
 
-If you are targeting iOS, you must install the CocoaPods:
-
-```sh
-cd ios && pod install
-```
 
 ### Android Setup
 

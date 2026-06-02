@@ -111,48 +111,12 @@ jobs:
           path: rust_engine/target/${{ matrix.target }}/release/*.so
 
   # ─────────────────────────────────────────────────────────────────────
-  # Job 3: iOS Cross-Compilation (aarch64-apple-ios)
-  # ─────────────────────────────────────────────────────────────────────
-  ios:
-    name: Build iOS (aarch64)
-    runs-on: macos-latest
-    needs: test
-    defaults:
-      run:
-        working-directory: rust_engine
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          targets: aarch64-apple-ios
-
-      - name: Cache Cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust_engine/target
-          key: ios-aarch64-${{ hashFiles('rust_engine/Cargo.lock') }}
-
-      - name: Build iOS static library
-        run: cargo build --release --target aarch64-apple-ios
-
-      - name: Upload iOS artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: ios-aarch64
-          path: rust_engine/target/aarch64-apple-ios/release/*.a
-
-  # ─────────────────────────────────────────────────────────────────────
   # Job 4: Bundle into React Native Module
   # ─────────────────────────────────────────────────────────────────────
   bundle:
     name: Bundle NPM Package
     runs-on: ubuntu-latest
-    needs: [android, ios]
+    needs: [android]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -168,11 +132,6 @@ jobs:
           name: android-armeabi-v7a
           path: react-native-open-face/android/src/main/jniLibs/armeabi-v7a/
 
-      - name: Download iOS aarch64
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: ios-aarch64
-          path: react-native-open-face/ios/libs/
 
       - name: Verify bundled binaries
         run: |
@@ -180,8 +139,6 @@ jobs:
           ls -lh react-native-open-face/android/src/main/jniLibs/arm64-v8a/
           echo "=== Android armeabi-v7a ==="
           ls -lh react-native-open-face/android/src/main/jniLibs/armeabi-v7a/
-          echo "=== iOS aarch64 ==="
-          ls -lh react-native-open-face/ios/libs/
 
       - name: Upload bundled module
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

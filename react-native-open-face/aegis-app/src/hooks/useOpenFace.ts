@@ -269,6 +269,35 @@ export function useOpenFace() {
             inference: `${metrics.inferenceLatencyMs.toFixed(1)}ms`,
             sync: metrics.syncStatus,
           });
+
+          // Hackathon 7.0: Datalake 3.0 Integration
+          if (metrics.syncStatus === 'syncing') {
+            console.log("Initiating AWS Datalake 3.0 Sync...");
+            try {
+              // Retrieve the encrypted binary ledger from disk (simulated payload)
+              const ledgerPayload = new FormData();
+              ledgerPayload.append('file', {
+                uri: 'file:///data/user/0/com.aegisapp/files/ledger.bin',
+                name: 'ledger.bin',
+                type: 'application/octet-stream',
+              } as any);
+
+              // Perform the secure HTTP Sync
+              fetch('https://api.datalake.example.com/v3/sync', {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer HACKATHON_TEMPORARY_TOKEN',
+                  'X-Device-Hardware-ID': 'aegis-edge-node-01',
+                },
+                body: ledgerPayload,
+              }).then(res => {
+                if(res.ok) console.log("AWS Sync Successful! Ledger synced.");
+                else console.log("AWS Sync completed with status:", res.status);
+              }).catch(err => console.log("AWS Sync simulated network error (expected without internet):", err.message));
+            } catch (err) {
+              console.error("Failed to execute AWS sync", err);
+            }
+          }
         }
       } catch {
         // Non-critical

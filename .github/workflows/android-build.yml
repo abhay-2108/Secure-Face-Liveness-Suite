@@ -46,14 +46,14 @@ jobs:
       with:
         node-version: '18'
         cache: 'yarn'
-        cache-dependency-path: 'react-native-open-face/example/yarn.lock'
+        cache-dependency-path: 'react-native-open-face/aegis-app/yarn.lock'
 
     - name: Install Root Dependencies
       working-directory: react-native-open-face
       run: yarn install
 
-    - name: Install Example Dependencies
-      working-directory: react-native-open-face/example
+    - name: Install Aegis App Dependencies
+      working-directory: react-native-open-face/aegis-app
       run: yarn install
 
     - name: Set up Python 3.12
@@ -68,7 +68,7 @@ jobs:
       run: python download_hf_models.py
 
     - name: Build Android APK
-      working-directory: react-native-open-face/example/android
+      working-directory: react-native-open-face/aegis-app/android
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
@@ -80,4 +80,4 @@ jobs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: app-debug.apk
-        path: react-native-open-face/example/android/app/build/outputs/apk/debug/app-debug.apk
+        path: react-native-open-face/aegis-app/android/app/build/outputs/apk/debug/app-debug.apk
