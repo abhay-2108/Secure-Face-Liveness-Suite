@@ -22,6 +22,22 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@2817442ee7c3346c1eb7d2ec60263c93206ba14f # v1
+      with:
+        ndk-version: '25.2.9519653'
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+    - name: Build Rust Engine (Android)
+      working-directory: rust_engine
+      run: |
+        cargo install cargo-ndk
+        rustup target add aarch64-linux-android armv7-linux-androideabi
+        cargo ndk -t arm64-v8a -o ../react-native-open-face/android/src/main/jniLibs build --release
+        cargo ndk -t armeabi-v7a -o ../react-native-open-face/android/src/main/jniLibs build --release
+
     - name: Set up Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:

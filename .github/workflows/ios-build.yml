@@ -15,16 +15,24 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+    - name: Build Rust Engine (iOS)
+      working-directory: rust_engine
+      run: |
+        rustup target add aarch64-apple-ios
+        cargo build --target aarch64-apple-ios --release
+        mkdir -p ../react-native-open-face/ios/libs
+        cp target/aarch64-apple-ios/release/libopen_face_engine.a ../react-native-open-face/ios/libs/
+
+    - name: Set up Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
-        ruby-version: '3.2'
-        bundler-cache: true
+        node-version: '18'
 
-    - name: Install CocoaPods
-      run: gem install cocoapods
-
-    - name: Lint Podspec (Compile Library)
+    - name: Build TypeScript Module
       working-directory: react-native-open-face
-      # We skip dependencies to avoid needing a full RN app just for linting
-      run: pod lib lint react-native-open-face.podspec --allow-warnings --skip-import-validation
+      run: |
+        yarn install
+        yarn run build
