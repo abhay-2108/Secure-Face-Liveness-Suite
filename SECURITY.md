@@ -1,6 +1,6 @@
 <div align="center">
   <br />
-  <h1>🔒 Security Policy & Zero-Trust Architecture</h1>
+  <h1>🔒 Aegis: Secure Face Liveness Suite - Security Policy & Zero-Trust Architecture</h1>
 </div>
 
 ---

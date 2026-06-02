@@ -507,13 +507,13 @@ pub extern "C" fn open_face_load_model_zero_copy(_asset_manager_ptr: *mut std::f
 ///
 /// - `y_ptr` must be a valid, non-null pointer to a buffer of at least `width * height` bytes.
 /// - The buffer must remain valid and unmodified for the duration of this call.
-/// - This function must not be called concurrently from multiple threads with the same buffer.
-#[no_mangle]
+/// - This function must not be called concurrently from multiple threads with the same buff#[no_mangle]
 pub unsafe extern "C" fn open_face_process_frame(
     y_ptr: *mut u8,
     width: i32,
     height: i32,
     stride: i32,
+    flash_state: i32,
 ) -> *mut std::os::raw::c_char {
     if y_ptr.is_null() {
         let err_json =
@@ -546,11 +546,34 @@ pub unsafe extern "C" fn open_face_process_frame(
     clahe.apply_in_place(y_slice, width as usize, height as usize);
     let preprocess_ms = preprocess_start.elapsed().as_secs_f64() * 1000.0;
 
-    // 2. Liveness Detection
+    // 2. Liveness Detection (Consolidated Zero-ML suite)
     let liveness_start = Instant::now();
-    let is_live = liveness::check_liveness(y_slice, width as usize, height as usize);
+    
+    // Feature 5: Laplacian texture
     let variance = liveness::calculate_laplacian_variance(y_slice, width as usize, height as usize);
+    let texture_passed = variance >= 50.0;
+
+    // Feature 2: FFT Moire Detection
+    let (moire_passed, moire_score) = liveness::detect_moire_patterns(y_slice, width as usize, height as usize);
+
+    // Feature 3: Sparse Lucas-Kanade Jitter tracking
+    let (jitter_passed, jitter_score) = liveness::track_jitter_optical_flow(y_slice, width as usize, height as usize);
+
+    // Feature 1: Screen Flash reflection analysis
+    let (flash_passed, flash_score) = if flash_state > 0 {
+        liveness::process_screen_flash(y_slice, width as usize, height as usize, flash_state)
+    } else {
+        (true, 1.0)
+    };
+
+    let is_live = texture_passed && moire_passed && jitter_passed && flash_passed;
     let liveness_ms = liveness_start.elapsed().as_secs_f64() * 1000.0;
+
+    // Sensor Fusion Liveness Score
+    let texture_score = (variance / 1000.0).min(1.0);
+    let liveness_score = (texture_score * 0.2 + moire_score * 0.3 + jitter_score * 0.3 + flash_score * 0.2)
+        .min(1.0)
+        .max(0.0);
 
     // 3. Determine liveness status and challenge
     let cfg = CONFIG.lock().unwrap();
@@ -558,15 +581,12 @@ pub unsafe extern "C" fn open_face_process_frame(
     let match_threshold = cfg.match_threshold;
     drop(cfg);
 
-    let normalized_score = (variance / 1000.0).min(1.0);
-    let liveness_passed = is_live && normalized_score >= liveness_threshold;
+    // If flash sequence is in-progress (state == 1), we don't declare passed/failed yet
+    let liveness_passed = is_live && liveness_score >= liveness_threshold && flash_state != 1;
 
     // 4. HNSW Search (only if liveness passed) — uses dummy embedding for now
-    //    In production, Tract inference would generate the real embedding here
     let (match_json, hnsw_ms) = if liveness_passed {
         let search_start = Instant::now();
-        // Placeholder: generate a deterministic embedding from the frame
-        // Real implementation: run GhostFaceNet through Tract here
         let hnsw = HNSW.lock().unwrap();
         let dummy_embedding = [0.0f32; 128]; // Will be replaced by Tract output
         let results = hnsw.search(&dummy_embedding, 1);
@@ -616,26 +636,36 @@ pub unsafe extern "C" fn open_face_process_frame(
 
     // Build the full FrameResult JSON
     let json_str = format!(
-        r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":false,"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
+        r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":{},"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{},"reflectionPassed":{},"moirePassed":{},"jitterPassed":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
         is_live,
-        normalized_score,
+        liveness_score,
+        jitter_passed,
         if liveness_passed {
             "passed"
+        } else if flash_state == 1 {
+            "pending"
         } else {
             "in_progress"
         },
         if !is_live {
-            "hold_still"
+            if !flash_passed {
+                "screen_flash"
+            } else {
+                "hold_still"
+            }
         } else if !liveness_passed {
-            "blink"
+            "none"
         } else {
             "none"
         },
         if liveness_passed {
             1.0
         } else {
-            normalized_score
+            liveness_score
         },
+        flash_passed,
+        moire_passed,
+        jitter_passed,
         match_json,
         total_ms,
         preprocess_ms,

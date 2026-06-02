@@ -49,7 +49,7 @@ extern "C" {
     void  open_face_shutdown();
 
     // Frame processing
-    char* open_face_process_frame(uint8_t* yuv_data, int width, int height, int stride);
+    char* open_face_process_frame(uint8_t* yuv_data, int width, int height, int stride, int flash_state);
     void  open_face_free_string(char* s);
 
     // Model loading (Android zero-copy via AAssetManager)
@@ -165,7 +165,7 @@ Java_com_openface_OpenFaceModule_nativeLoadModels(
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_openface_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
     JNIEnv* env, jobject /* thiz */,
-    jobject directBuffer, jint width, jint height, jint stride) {
+    jobject directBuffer, jint width, jint height, jint stride, jint flashState) {
 
     uint8_t* y_plane = nullptr;
 
@@ -182,13 +182,13 @@ Java_com_openface_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
             y_plane[i] = (uint8_t)(i % 255);
         }
 
-        char* result_c_str = open_face_process_frame(y_plane, width, height, stride);
+        char* result_c_str = open_face_process_frame(y_plane, width, height, stride, flashState);
         delete[] y_plane;
 
         return rustStringToJString(env, result_c_str);
     }
 
     // Zero-copy path: pass the hardware camera buffer pointer directly to Rust
-    char* result_c_str = open_face_process_frame(y_plane, width, height, stride);
+    char* result_c_str = open_face_process_frame(y_plane, width, height, stride, flashState);
     return rustStringToJString(env, result_c_str);
 }

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { NativeModules } from 'react-native';
 import { useFrameProcessor } from 'react-native-vision-camera';
-import { runOnJS } from 'react-native-reanimated';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
 const { OpenFace } = NativeModules;
 
@@ -24,8 +24,11 @@ export interface FrameResult {
     opticalFlowPassed: boolean;
     blinkDetected: boolean;
     status: 'pending' | 'in_progress' | 'passed' | 'failed' | 'timeout';
-    currentChallenge: 'turn_head' | 'blink' | 'hold_still' | 'none';
+    currentChallenge: 'turn_head' | 'blink' | 'hold_still' | 'screen_flash' | 'none';
     challengeProgress: number;
+    reflectionPassed?: boolean;
+    moirePassed?: boolean;
+    jitterPassed?: boolean;
   } | null;
   embedding: number[];
   match: {
@@ -68,8 +71,10 @@ export function useOpenFace() {
     sync: 'offline',
   });
 
-  // Track frame count for throttling UI updates
-  const frameCountRef = useRef(0);
+  // Feature 1: Screen Flash Orchestration
+  const flashState = useSharedValue(0); // 0 = None, 1 = Dark, 2 = Lit
+  const [flashColor, setFlashColor] = useState<'transparent' | 'black' | 'white'>('transparent');
+  const flashExecutedRef = useRef(false);
 
   // -------------------------------------------------------------------------
   // Initialize engine via the new API (falls back to legacy if needed)
@@ -101,6 +106,7 @@ export function useOpenFace() {
       setIsReady(true);
       setError(null);
       setTelemetry((prev) => ({ ...prev, arena: '40MB locked', model: 'Loading...' }));
+      flashExecutedRef.current = false;
 
       // Fetch initial metrics
       try {
@@ -124,6 +130,31 @@ export function useOpenFace() {
     }
   }, []);
 
+  // Screen Flash Interactive Sequence
+  const triggerScreenFlash = useCallback(async () => {
+    try {
+      // Step A: Dark frame capture baseline
+      flashState.value = 1;
+      setFlashColor('black');
+      setLivenessPrompt('Screen Flash: Capturing dark baseline...');
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Step B: Lit frame capture illumination
+      flashState.value = 2;
+      setFlashColor('white');
+      setLivenessPrompt('Screen Flash: Analyzing 3D reflection...');
+      await new Promise((resolve) => setTimeout(resolve, 180));
+
+      // Step C: Restore UI
+      flashState.value = 0;
+      setFlashColor('transparent');
+      setLivenessPrompt('');
+    } catch {
+      flashState.value = 0;
+      setFlashColor('transparent');
+    }
+  }, [flashState]);
+
   // -------------------------------------------------------------------------
   // Frame processor — runs on the worklet thread via VisionCamera
   // -------------------------------------------------------------------------
@@ -135,18 +166,6 @@ export function useOpenFace() {
       setLastFrameResult(result);
 
       if (result.faceDetected && result.liveness) {
-        // Update liveness prompt based on engine challenge
-        const challenge = result.liveness.currentChallenge;
-        if (challenge === 'turn_head') {
-          setLivenessPrompt('turn head slightly');
-        } else if (challenge === 'blink') {
-          setLivenessPrompt('blink naturally');
-        } else if (challenge === 'hold_still') {
-          setLivenessPrompt('hold still');
-        } else {
-          setLivenessPrompt('');
-        }
-
         setLivenessStatus(result.liveness.status);
 
         // Update telemetry from per-frame metrics
@@ -162,20 +181,45 @@ export function useOpenFace() {
         if (result.match?.matched) {
           setMatchId(result.match.identityId);
         }
+
+        // Automatic Screen Flash Trigger
+        const challenge = result.liveness.currentChallenge;
+        if (challenge === 'screen_flash') {
+          if (!flashExecutedRef.current) {
+            flashExecutedRef.current = true;
+            triggerScreenFlash();
+          }
+        } else if (challenge === 'hold_still') {
+          // If the engine asks us to hold still, wait a moment and trigger flash reflection check
+          if (!flashExecutedRef.current) {
+            flashExecutedRef.current = true;
+            setTimeout(() => {
+              triggerScreenFlash();
+            }, 800);
+          }
+          setLivenessPrompt('hold still');
+        } else if (challenge === 'turn_head') {
+          setLivenessPrompt('turn head slightly');
+        } else if (challenge === 'blink') {
+          setLivenessPrompt('blink naturally');
+        } else {
+          setLivenessPrompt('');
+        }
       } else {
         setLivenessPrompt('');
       }
     } catch {
       // Malformed JSON from engine — ignore
     }
-  }, []);
+  }, [triggerScreenFlash]);
 
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
     // @ts-ignore — processOpenFace is registered natively
     if (global.processOpenFace) {
+      // Pass flashState as a direct parameter to JSI Frame Processor
       // @ts-ignore
-      const resultStr = global.processOpenFace(frame);
+      const resultStr = global.processOpenFace(frame, { flashState: flashState.value });
       if (resultStr && typeof resultStr === 'string') {
         // Use runOnJS to send results back to the React JS thread
         runOnJS(handleFrameResult)(resultStr);
@@ -221,6 +265,8 @@ export function useOpenFace() {
     matchId,
     lastFrameResult,
     error,
+    flashColor,
+    triggerScreenFlash,
     setLivenessPrompt,
     setMatchId,
   };

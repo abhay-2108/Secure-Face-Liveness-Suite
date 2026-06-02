@@ -20,6 +20,7 @@ export const AuthenticationScreen: React.FC = () => {
     lastFrameResult,
     error,
     frameProcessor,
+    flashColor,
   } = useOpenFace();
 
   const [showTelemetry, setShowTelemetry] = useState(false);
@@ -56,6 +57,19 @@ export const AuthenticationScreen: React.FC = () => {
     <TouchableWithoutFeedback onPress={() => setShowTelemetry(prev => !prev)} delayPressIn={500}>
       <View style={styles.container}>
         <CameraPreview frameProcessor={frameProcessor} />
+
+        {/* Interactive Screen Flash Overlay (Zero-ML Reflection Liveness) */}
+        {flashColor !== 'transparent' && (
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                backgroundColor: flashColor,
+                zIndex: 99999,
+              },
+            ]}
+          />
+        )}
 
         {/* Dark overlay with clear cutout for the face */}
         <View style={styles.overlayContainer} pointerEvents="none">

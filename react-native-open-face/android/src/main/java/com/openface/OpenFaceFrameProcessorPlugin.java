@@ -32,7 +32,8 @@ public class OpenFaceFrameProcessorPlugin extends FrameProcessorPlugin {
         ByteBuffer yPlaneBuffer,
         int width,
         int height,
-        int stride
+        int stride,
+        int flashState
     );
 
     public OpenFaceFrameProcessorPlugin(
@@ -63,8 +64,16 @@ public class OpenFaceFrameProcessorPlugin extends FrameProcessorPlugin {
             int height = image.getHeight();
             int stride = planes[0].getRowStride();
 
+            int flashState = 0;
+            if (arguments != null && arguments.containsKey("flashState")) {
+                Object val = arguments.get("flashState");
+                if (val instanceof Number) {
+                    flashState = ((Number) val).intValue();
+                }
+            }
+
             // Pass the direct buffer to JNI → C++ → Rust
-            return nativeProcessFrame(yBuffer, width, height, stride);
+            return nativeProcessFrame(yBuffer, width, height, stride, flashState);
 
         } catch (com.mrousavy.camera.core.FrameInvalidError e) {
             return "{\"faceDetected\": false, \"error\": \"FrameInvalidError: " + e.getMessage() + "\"}";

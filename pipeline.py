@@ -14,6 +14,9 @@ Usage:
 
     # Both sync + validate
     python pipeline.py --sync --validate
+
+    # Upload ONNX models to Hugging Face
+    python pipeline.py --upload
 """
 
 import os
@@ -72,6 +75,54 @@ def sync_weights():
     for filename, local_path in MODEL_REGISTRY:
         _download_file(filename, local_path)
     print("\n  All weights synchronized.\n")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Model Upload (ONNX)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def upload_models():
+    """Uploads ONNX models to Hugging Face Hub."""
+    from huggingface_hub import HfApi
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    HF_TOKEN = os.getenv("HF_TOKEN")
+    ONNX_DIR = "models_onnx"
+    
+    if not HF_TOKEN:
+        print("Error: HF_TOKEN not found in .env file.")
+        return
+
+    print(f"\n" + "="*60)
+    print("  NHAI EDGE AI — Uploading Models")
+    print(f"  Hub: https://huggingface.co/{HF_REPO_ID}")
+    print("="*60)
+    
+    try:
+        api = HfApi()
+        # Create repo if it doesn't exist
+        api.create_repo(repo_id=HF_REPO_ID, token=HF_TOKEN, exist_ok=True, private=False)
+        
+        if not os.path.exists(ONNX_DIR):
+            print(f"Error: Directory {ONNX_DIR} does not exist.")
+            return
+
+        # Upload all files in the onnx directory
+        for filename in os.listdir(ONNX_DIR):
+            file_path = os.path.join(ONNX_DIR, filename)
+            if os.path.isfile(file_path):
+                print(f"  [UPLOAD]  {filename}...")
+                api.upload_file(
+                    path_or_fileobj=file_path,
+                    path_in_repo=filename,
+                    repo_id=HF_REPO_ID,
+                    repo_type="model",
+                    token=HF_TOKEN
+                )
+        print("\n  All models uploaded successfully!\n")
+    except Exception as e:
+        print(f"  [ERROR]   Failed to upload models: {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -160,13 +211,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NHAI Edge AI Pipeline Utility")
     parser.add_argument("--sync",     action="store_true", help="Sync model weights from Hugging Face Hub")
     parser.add_argument("--validate", action="store_true", help="Run end-to-end integration validation")
+    parser.add_argument("--upload",   action="store_true", help="Upload ONNX models to Hugging Face Hub")
     args = parser.parse_args()
 
-    # Default: run both if no flags specified
-    if not args.sync and not args.validate:
+    # Default: run both sync and validate if no flags specified
+    if not args.sync and not args.validate and not args.upload:
         args.sync     = True
         args.validate = True
 
+    if args.upload:
+        upload_models()
     if args.sync:
         sync_weights()
     if args.validate:

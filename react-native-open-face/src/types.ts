@@ -61,6 +61,7 @@ export type LivenessChallenge =
   | 'turn_head'
   | 'blink'
   | 'hold_still'
+  | 'screen_flash'
   | 'none';
 
 /**
@@ -97,6 +98,15 @@ export interface LivenessResult {
 
   /** Progress through the liveness challenge sequence (0–1) */
   challengeProgress: number;
+
+  /** 3D screen flash reflection analysis passed */
+  reflectionPassed?: boolean;
+
+  /** 2D Fourier transform Moire detection passed */
+  moirePassed?: boolean;
+
+  /** 2D sparse Lucas-Kanade optical flow jitter check passed */
+  jitterPassed?: boolean;
 }
 
 /**

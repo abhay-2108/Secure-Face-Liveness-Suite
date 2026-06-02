@@ -8,7 +8,7 @@
   <br />
   <br />
 
-  <h1>🛡️ OpenFace Edge Engine</h1>
+  <h1>🛡️ Aegis: Secure Face Liveness Suite</h1>
 
   <p>
     <strong>A military-grade, standalone facial recognition & liveness detection inference pipeline running entirely on local edge hardware.</strong>

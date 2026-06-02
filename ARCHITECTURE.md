@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/Markdown-Dark.svg" width="60" />
   <br />
   <br />
-  <h1>📖 OpenFace Architecture & Deep Technical Whitepaper</h1>
+  <h1>📖 Aegis: Secure Face Liveness Suite - Architecture & Deep Technical Whitepaper</h1>
   <p>
     <strong>A detailed look into the 4-Tier Zero-Copy Bridge and the Mathematical Lock Arena.</strong>
   </p>

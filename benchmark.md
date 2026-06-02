@@ -1,4 +1,4 @@
-# NHAI Edge AI - Performance & Biometric Benchmark Report
+# Aegis: Secure Face Liveness Suite - Performance & Biometric Benchmark Report
 
 > **Generated from**: `run_benchmarks.py` executed against live CUDA environment  
 > **Date**: May 29, 2026  
