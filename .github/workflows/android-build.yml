@@ -1,0 +1,46 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+        cache-dependency-path: 'react-native-open-face/example/yarn.lock'
+
+    - name: Install Dependencies
+      working-directory: react-native-open-face/example
+      run: yarn install
+
+    - name: Build Android APK
+      working-directory: react-native-open-face/example/android
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug.apk
+        path: react-native-open-face/example/android/app/build/outputs/apk/debug/app-debug.apk

@@ -66,6 +66,8 @@ public class OpenFaceFrameProcessorPlugin extends FrameProcessorPlugin {
             // Pass the direct buffer to JNI → C++ → Rust
             return nativeProcessFrame(yBuffer, width, height, stride);
 
+        } catch (com.mrousavy.camera.core.FrameInvalidError e) {
+            return "{\"faceDetected\": false, \"error\": \"FrameInvalidError: " + e.getMessage() + "\"}";
         } catch (Exception e) {
             return "{\"faceDetected\": false, \"error\": \"" + e.getMessage() + "\"}";
         }

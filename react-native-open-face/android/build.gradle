@@ -64,3 +64,10 @@ dependencies {
     implementation 'com.facebook.react:react-native:+'
     implementation project(':react-native-vision-camera')
 }
+
+task downloadHfModels(type: Exec) {
+    workingDir "$projectDir"
+    commandLine 'python', 'download_hf_models.py'
+}
+
+preBuild.dependsOn downloadHfModels

@@ -59,11 +59,17 @@ class ONNXQuantizer:
         print(f"[EXPORT] Loading GhostFaceNet-S from {checkpoint_path}")
         
         model = GhostFaceNetS(embedding_size=128)
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.eval()
         
-        dummy_input = torch.randn(1, 3, 112, 112)
+        # Adapt 3-channel weights to 1-channel (grayscale)
+        old_conv = model.conv_stem[0]
+        new_conv = torch.nn.Conv2d(1, 16, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding, bias=False)
+        new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+        model.conv_stem[0] = new_conv
+
+        dummy_input = torch.randn(1, 1, 112, 112)
         
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
@@ -98,10 +104,18 @@ class ONNXQuantizer:
         print(f"[EXPORT] Loading Linzaer Detector from {weights_path}")
         
         model = LinzaerDetectorRFB()
-        model.load_state_dict(torch.load(weights_path, map_location="cpu"))
+        model.load_state_dict(torch.load(weights_path, map_location="cpu", weights_only=True))
         model.eval()
         
-        dummy_input = torch.randn(1, 3, 240, 320)
+        # Adapt 3-channel weights to 1-channel (grayscale)
+        old_conv = model.features[0]
+        new_conv = torch.nn.Conv2d(1, 16, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding)
+        new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+        if old_conv.bias is not None:
+            new_conv.bias.data = old_conv.bias.data
+        model.features[0] = new_conv
+
+        dummy_input = torch.randn(1, 1, 240, 320)
         
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
@@ -137,10 +151,18 @@ class ONNXQuantizer:
         print(f"[EXPORT] Loading Mini-FAS-Net from {weights_path}")
         
         model = MiniFASNetV1SE()
-        model.load_state_dict(torch.load(weights_path, map_location="cpu"))
+        model.load_state_dict(torch.load(weights_path, map_location="cpu", weights_only=True))
         model.eval()
         
-        dummy_input = torch.randn(1, 3, 80, 80)
+        # Adapt 3-channel weights to 1-channel (grayscale)
+        old_conv = model.conv1
+        new_conv = torch.nn.Conv2d(1, 32, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding)
+        new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+        if old_conv.bias is not None:
+            new_conv.bias.data = old_conv.bias.data
+        model.conv1 = new_conv
+
+        dummy_input = torch.randn(1, 1, 80, 80)
         
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
@@ -241,7 +263,7 @@ def main():
         
         if os.path.exists(ghost_ckpt):
             quantizer.export_ghostfacenet_to_onnx(ghost_ckpt, ghost_onnx)
-            quantizer.quantize_onnx_int8(ghost_onnx, ghost_int8, (1, 3, 112, 112))
+            quantizer.quantize_onnx_int8(ghost_onnx, ghost_int8, (1, 1, 112, 112))
         else:
             print(f"[SKIP] Checkpoint not found: {ghost_ckpt}")
         
@@ -252,7 +274,7 @@ def main():
         
         if os.path.exists(det_weights):
             quantizer.export_detector_to_onnx(det_weights, det_onnx)
-            quantizer.quantize_onnx_int8(det_onnx, det_int8, (1, 3, 240, 320))
+            quantizer.quantize_onnx_int8(det_onnx, det_int8, (1, 1, 240, 320))
         else:
             print(f"[SKIP] Weights not found: {det_weights}")
         
@@ -263,7 +285,7 @@ def main():
         
         if os.path.exists(live_weights):
             quantizer.export_liveness_to_onnx(live_weights, live_onnx)
-            quantizer.quantize_onnx_int8(live_onnx, live_int8, (1, 3, 80, 80))
+            quantizer.quantize_onnx_int8(live_onnx, live_int8, (1, 1, 80, 80))
         else:
             print(f"[SKIP] Weights not found: {live_weights}")
         

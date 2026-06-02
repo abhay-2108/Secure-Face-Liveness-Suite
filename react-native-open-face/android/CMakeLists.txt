@@ -9,7 +9,7 @@ set(RUST_LIB_DIR "${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}")
 
 # JNI bridge source — thin wrapper that calls extern "C" Rust functions
 add_library(open_face_jni SHARED
-    src/main/cpp/open_face_jni.cpp
+    src/main/cpp/openface_jni.cpp
 
 )
 

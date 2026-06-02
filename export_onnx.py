@@ -13,7 +13,7 @@ def export_ghostfacenet(model_path, output_path):
     model = GhostFaceNetS(embedding_size=128)
     
     # Load state dict
-    ckpt = torch.load(model_path, map_location="cpu")
+    ckpt = torch.load(model_path, map_location="cpu", weights_only=True)
     if "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
     else:
@@ -21,8 +21,14 @@ def export_ghostfacenet(model_path, output_path):
     
     model.eval()
     
+    # Adapt 3-channel weights to 1-channel (grayscale)
+    old_conv = model.conv_stem[0]
+    new_conv = torch.nn.Conv2d(1, 16, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding, bias=False)
+    new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+    model.conv_stem[0] = new_conv
+
     # Create dummy input [Batch, Channels, Height, Width]
-    dummy_input = torch.randn(1, 3, 112, 112)
+    dummy_input = torch.randn(1, 1, 112, 112)
     
     torch.onnx.export(
         model,
@@ -41,12 +47,20 @@ def export_liveness(model_path, output_path):
     print(f"Exporting Liveness from {model_path} to {output_path}...")
     model = MiniFASNetV1SE()
     
-    ckpt = torch.load(model_path, map_location="cpu")
+    ckpt = torch.load(model_path, map_location="cpu", weights_only=True)
     model.load_state_dict(ckpt)
     model.eval()
     
+    # Adapt 3-channel weights to 1-channel (grayscale)
+    old_conv = model.conv1
+    new_conv = torch.nn.Conv2d(1, 32, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding)
+    new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+    if old_conv.bias is not None:
+        new_conv.bias.data = old_conv.bias.data
+    model.conv1 = new_conv
+
     # Liveness usually takes 80x80
-    dummy_input = torch.randn(1, 3, 80, 80)
+    dummy_input = torch.randn(1, 1, 80, 80)
     
     torch.onnx.export(
         model,
@@ -65,12 +79,20 @@ def export_detector(model_path, output_path):
     print(f"Exporting Detector from {model_path} to {output_path}...")
     model = LinzaerDetectorRFB()
     
-    ckpt = torch.load(model_path, map_location="cpu")
+    ckpt = torch.load(model_path, map_location="cpu", weights_only=True)
     model.load_state_dict(ckpt)
     model.eval()
     
+    # Adapt 3-channel weights to 1-channel (grayscale)
+    old_conv = model.features[0]
+    new_conv = torch.nn.Conv2d(1, 16, kernel_size=old_conv.kernel_size, stride=old_conv.stride, padding=old_conv.padding)
+    new_conv.weight.data = old_conv.weight.data.mean(dim=1, keepdim=True)
+    if old_conv.bias is not None:
+        new_conv.bias.data = old_conv.bias.data
+    model.features[0] = new_conv
+
     # Detector usually takes 240x320
-    dummy_input = torch.randn(1, 3, 240, 320)
+    dummy_input = torch.randn(1, 1, 240, 320)
     
     torch.onnx.export(
         model,
