@@ -553,9 +553,6 @@ pub unsafe extern "C" fn open_face_process_frame(
     let variance = liveness::calculate_laplacian_variance(y_slice, width as usize, height as usize);
     let texture_passed = variance >= 50.0;
 
-    // Feature 2: FFT Moire Detection
-    let (moire_passed, moire_score) = liveness::detect_moire_patterns(y_slice, width as usize, height as usize);
-
     // Feature 3: Sparse Lucas-Kanade Jitter tracking
     let (jitter_passed, jitter_score) = liveness::track_jitter_optical_flow(y_slice, width as usize, height as usize);
 
@@ -566,12 +563,12 @@ pub unsafe extern "C" fn open_face_process_frame(
         (true, 1.0)
     };
 
-    let is_live = texture_passed && moire_passed && jitter_passed && flash_passed;
+    let is_live = texture_passed && jitter_passed && flash_passed;
     let liveness_ms = liveness_start.elapsed().as_secs_f64() * 1000.0;
 
     // Sensor Fusion Liveness Score
     let texture_score = (variance / 1000.0).min(1.0);
-    let liveness_score = (texture_score * 0.2 + moire_score * 0.3 + jitter_score * 0.3 + flash_score * 0.2)
+    let liveness_score = (texture_score * 0.3 + jitter_score * 0.4 + flash_score * 0.3)
         .min(1.0)
         .max(0.0);
 
@@ -636,7 +633,7 @@ pub unsafe extern "C" fn open_face_process_frame(
 
     // Build the full FrameResult JSON
     let json_str = format!(
-        r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":{},"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{},"reflectionPassed":{},"moirePassed":{},"jitterPassed":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
+        r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":{},"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{},"reflectionPassed":{},"jitterPassed":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
         is_live,
         liveness_score,
         jitter_passed,
@@ -664,7 +661,6 @@ pub unsafe extern "C" fn open_face_process_frame(
             liveness_score
         },
         flash_passed,
-        moire_passed,
         jitter_passed,
         match_json,
         total_ms,

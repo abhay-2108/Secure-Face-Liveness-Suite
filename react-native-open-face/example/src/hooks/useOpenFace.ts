@@ -27,7 +27,6 @@ export interface FrameResult {
     currentChallenge: 'turn_head' | 'blink' | 'hold_still' | 'screen_flash' | 'none';
     challengeProgress: number;
     reflectionPassed?: boolean;
-    moirePassed?: boolean;
     jitterPassed?: boolean;
   } | null;
   embedding: number[];

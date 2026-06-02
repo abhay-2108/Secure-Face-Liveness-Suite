@@ -942,7 +942,6 @@ dependencies = [
  "ndk-sys",
  "rand",
  "rand_core",
- "rustfft",
  "serde",
  "serde_json",
  "tract-onnx",

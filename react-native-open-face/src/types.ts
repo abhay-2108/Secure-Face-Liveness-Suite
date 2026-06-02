@@ -102,8 +102,6 @@ export interface LivenessResult {
   /** 3D screen flash reflection analysis passed */
   reflectionPassed?: boolean;
 
-  /** 2D Fourier transform Moire detection passed */
-  moirePassed?: boolean;
 
   /** 2D sparse Lucas-Kanade optical flow jitter check passed */
   jitterPassed?: boolean;

@@ -3,14 +3,10 @@
 //! Provides three robust Zero-ML liveness checks:
 //! 1. FFT Moiré/Halftone Detection
 //! 2. Jitter/Micro-Motion Tracking (Sparse Lucas-Kanade Optical Flow)
-//! 3. Screen Flash Reflection Analysis (Subsurface scattering vs. 2D flat glare)
-
-use rustfft::{FftPlanner, num_complex::Complex};
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref FFT_PLANNER: Mutex<FftPlanner<f32>> = Mutex::new(FftPlanner::new());
     static ref PREV_FRAMES: Mutex<Vec<Vec<u8>>> = Mutex::new(Vec::new());
     static ref PREV_WIDTH: Mutex<usize> = Mutex::new(0);
     static ref PREV_HEIGHT: Mutex<usize> = Mutex::new(0);
@@ -146,125 +142,6 @@ pub fn process_screen_flash(y_channel: &[u8], width: usize, height: usize, flash
     }
 
     (true, 1.0)
-}
-
-/// Feature 2: Fast Fourier Transform (FFT) Moiré Detection
-/// Printed photos contain halftone dots and digital screens emit moiré grids.
-/// These interference grids create clear, sharp spikes in the 2D frequency spectrum.
-pub fn detect_moire_patterns(y_channel: &[u8], width: usize, height: usize) -> (bool, f64) {
-    if width < 64 || height < 64 {
-        return (true, 1.0);
-    }
-
-    let cx = width / 2;
-    let cy = height / 2;
-    let start_x = cx - 32;
-    let start_y = cy - 32;
-
-    // 1. Extract 64x64 crop
-    let mut crop = vec![0.0f32; 64 * 64];
-    for y in 0..64 {
-        let src_y = start_y + y;
-        for x in 0..64 {
-            let src_x = start_x + x;
-            crop[y * 64 + x] = y_channel[src_y * width + src_x] as f32;
-        }
-    }
-
-    // 2. Apply a 2D Hanning window to prevent edge leakage spectral artifacts
-    let mut hanning = [0.0f32; 64];
-    for i in 0..64 {
-        hanning[i] = 0.5 * (1.0 - (2.0 * std::f32::consts::PI * i as f32 / 63.0).cos());
-    }
-
-    let mut complex_grid = vec![Complex { re: 0.0, im: 0.0 }; 64 * 64];
-    for y in 0..64 {
-        for x in 0..64 {
-            let w = hanning[y] * hanning[x];
-            complex_grid[y * 64 + x].re = crop[y * 64 + x] * w;
-        }
-    }
-
-    // 3. Plan FFT of size 64
-    let mut planner = FFT_PLANNER.lock().unwrap();
-    let fft = planner.plan_fft_forward(64);
-
-    // Row-wise FFT
-    for y in 0..64 {
-        let row_start = y * 64;
-        let row_end = row_start + 64;
-        fft.process(&mut complex_grid[row_start..row_end]);
-    }
-
-    // Transpose
-    let mut transposed = vec![Complex { re: 0.0, im: 0.0 }; 64 * 64];
-    for y in 0..64 {
-        for x in 0..64 {
-            transposed[x * 64 + y] = complex_grid[y * 64 + x];
-        }
-    }
-
-    // Column-wise FFT (on rows of transposed)
-    for y in 0..64 {
-        let row_start = y * 64;
-        let row_end = row_start + 64;
-        fft.process(&mut transposed[row_start..row_end]);
-    }
-
-    // Shift center (zero frequency) to (32, 32)
-    let mut magnitude_shifted = vec![0.0f32; 64 * 64];
-    for y in 0..64 {
-        for x in 0..64 {
-            let shifted_y = (y + 32) % 64;
-            let shifted_x = (x + 32) % 64;
-            let val = transposed[x * 64 + y];
-            magnitude_shifted[shifted_y * 64 + shifted_x] = (val.re * val.re + val.im * val.im).sqrt();
-        }
-    }
-
-    // 4. Calculate energy distribution: Inner (low) vs Outer (high) frequencies
-    let mut inner_energy = 0.0;
-    let mut outer_energy = 0.0;
-    let mut outer_count = 0.0;
-    let mut max_outer = 0.0;
-
-    for y in 0..64 {
-        let dy = (y as i32 - 32) as f32;
-        for x in 0..64 {
-            let dx = (x as i32 - 32) as f32;
-            let dist = (dx * dx + dy * dy).sqrt();
-            let mag = magnitude_shifted[y * 64 + x];
-
-            if dist <= 12.0 {
-                inner_energy += mag;
-            } else {
-                outer_energy += mag;
-                outer_count += 1.0;
-                if mag > max_outer {
-                    max_outer = mag;
-                }
-            }
-        }
-    }
-
-    let avg_outer = if outer_count > 0.0 { outer_energy / outer_count } else { 0.0 };
-    let spike_ratio = if avg_outer > 0.0 { max_outer / avg_outer } else { 0.0 };
-    let high_freq_ratio = if inner_energy > 0.0 { outer_energy / inner_energy } else { 0.0 };
-
-    let mut score = 1.0;
-    if spike_ratio > 5.5 {
-        // Spikes corresponding to screen moiré grids or printer dot matrices
-        let reduction = ((spike_ratio - 5.5) * 0.15).min(0.8);
-        score -= reduction as f64;
-    }
-    if high_freq_ratio > 0.35 {
-        // High frequency noise / screen pixel scan lines
-        let reduction = ((high_freq_ratio - 0.35) * 1.2).min(0.5);
-        score -= reduction as f64;
-    }
-
-    let passed = score >= 0.70;
-    (passed, score)
 }
 
 /// Feature 3: Jitter/Micro-Motion Tracking (Sparse Lucas-Kanade Optical Flow)
@@ -422,9 +299,8 @@ pub fn check_liveness(y_channel: &[u8], width: usize, height: usize) -> bool {
         return false;
     }
 
-    // FFT Moire and Optical Flow Jitter checks
-    let (moire_ok, _) = detect_moire_patterns(y_channel, width, height);
+    // Optical Flow Jitter checks
     let (jitter_ok, _) = track_jitter_optical_flow(y_channel, width, height);
 
-    moire_ok && jitter_ok
+    jitter_ok
 }
