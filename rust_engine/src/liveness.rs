@@ -3,14 +3,14 @@
 //! Provides three robust Zero-ML liveness checks:
 //! 1. FFT Moiré/Halftone Detection
 //! 2. Jitter/Micro-Motion Tracking (Sparse Lucas-Kanade Optical Flow)
-use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 lazy_static! {
     static ref PREV_FRAMES: Mutex<Vec<Vec<u8>>> = Mutex::new(Vec::new());
     static ref PREV_WIDTH: Mutex<usize> = Mutex::new(0);
     static ref PREV_HEIGHT: Mutex<usize> = Mutex::new(0);
-    
+
     // Feature 1: Screen Flash Cache
     static ref FLASH_DARK_CROP: Mutex<Option<Vec<u8>>> = Mutex::new(None);
     pub static ref LAST_FLASH_SCORE: Mutex<Option<f64>> = Mutex::new(None);
@@ -56,7 +56,12 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
 /// Captures reflection difference between dark frame and lit frame.
 /// Real 3D skin absorbs and scatters light softly (subsurface scattering) with high, structured
 /// spatial variance, while a digital screen/flat photo causes flat glare or localized specular peaks.
-pub fn process_screen_flash(y_channel: &[u8], width: usize, height: usize, flash_state: i32) -> (bool, f64) {
+pub fn process_screen_flash(
+    y_channel: &[u8],
+    width: usize,
+    height: usize,
+    flash_state: i32,
+) -> (bool, f64) {
     if flash_state == 0 {
         // Return cached score if flash already completed previously
         let cached = *LAST_FLASH_SCORE.lock().unwrap();
@@ -188,7 +193,7 @@ pub fn track_jitter_optical_flow(y_channel: &[u8], width: usize, height: usize) 
     let cx = width / 2;
     let cy = height / 2;
     let points_base = [
-        (cx, cy), // Nose
+        (cx, cy),                          // Nose
         (cx - width / 8, cy - height / 8), // Left Eye
         (cx + width / 8, cy - height / 8), // Right Eye
         (cx - width / 8, cy + height / 8), // Left Cheek
@@ -225,10 +230,12 @@ pub fn track_jitter_optical_flow(y_channel: &[u8], width: usize, height: usize) 
 
                     if x > 0 && x < (width as i32 - 1) && y > 0 && y < (height as i32 - 1) {
                         let idx = (y * width as i32 + x) as usize;
-                        let ix = ((prev[idx + 1] as f32 - prev[idx - 1] as f32) / 2.0 + 
-                                  (curr[idx + 1] as f32 - curr[idx - 1] as f32) / 2.0) / 2.0;
-                        let iy = ((prev[idx + width] as f32 - prev[idx - width] as f32) / 2.0 + 
-                                  (curr[idx + width] as f32 - curr[idx - width] as f32) / 2.0) / 2.0;
+                        let ix = ((prev[idx + 1] as f32 - prev[idx - 1] as f32) / 2.0
+                            + (curr[idx + 1] as f32 - curr[idx - 1] as f32) / 2.0)
+                            / 2.0;
+                        let iy = ((prev[idx + width] as f32 - prev[idx - width] as f32) / 2.0
+                            + (curr[idx + width] as f32 - curr[idx - width] as f32) / 2.0)
+                            / 2.0;
                         let it = curr[idx] as f32 - prev[idx] as f32;
 
                         sxx += ix * ix;
@@ -270,7 +277,9 @@ pub fn track_jitter_optical_flow(y_channel: &[u8], width: usize, height: usize) 
 
             // Variance of distances
             let mean = (dists[0] + dists[1] + dists[2]) / 3.0;
-            let var = ((dists[0] - mean).powi(2) + (dists[1] - mean).powi(2) + (dists[2] - mean).powi(2)) / 3.0;
+            let var =
+                ((dists[0] - mean).powi(2) + (dists[1] - mean).powi(2) + (dists[2] - mean).powi(2))
+                    / 3.0;
             pairs_var.push(var);
         }
 

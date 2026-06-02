@@ -548,7 +548,7 @@ pub unsafe extern "C" fn open_face_process_frame(
 
     // 2. Liveness Detection (Consolidated Zero-ML suite)
     let liveness_start = Instant::now();
-    
+
     // Tier 1: Passive Laplacian texture (Fast Fail ~0.1ms)
     let variance = liveness::calculate_laplacian_variance(y_slice, width as usize, height as usize);
     let mut texture_passed = variance >= 50.0;
@@ -558,11 +558,12 @@ pub unsafe extern "C" fn open_face_process_frame(
     let mut flash_passed = true;
     let mut flash_score = 0.0;
 
-    // ACTIVE SEQUENCE OVERRIDE: If the screen flash is actively executing, 
-    // bypass the passive texture/jitter fast-fails. Flash illumination often blows out 
+    // ACTIVE SEQUENCE OVERRIDE: If the screen flash is actively executing,
+    // bypass the passive texture/jitter fast-fails. Flash illumination often blows out
     // Laplacian textures or disrupts optical flow. We must guarantee the flash is processed.
     if flash_state > 0 {
-        let (f_pass, f_score) = liveness::process_screen_flash(y_slice, width as usize, height as usize, flash_state);
+        let (f_pass, f_score) =
+            liveness::process_screen_flash(y_slice, width as usize, height as usize, flash_state);
         flash_passed = f_pass;
         flash_score = f_score;
         // Temporarily override passive checks so we don't abort the active sequence
@@ -571,7 +572,8 @@ pub unsafe extern "C" fn open_face_process_frame(
         jitter_score = 1.0;
     } else if texture_passed {
         // Tier 2: Sparse Lucas-Kanade Jitter tracking (Only runs if Tier 1 passes)
-        let (j_pass, j_score) = liveness::track_jitter_optical_flow(y_slice, width as usize, height as usize);
+        let (j_pass, j_score) =
+            liveness::track_jitter_optical_flow(y_slice, width as usize, height as usize);
         jitter_passed = j_pass;
         jitter_score = j_score;
 
@@ -582,7 +584,8 @@ pub unsafe extern "C" fn open_face_process_frame(
                 flash_score = 1.0;
             } else {
                 // FRONT CAMERA MODE: Tier 3: Retrieve cached flash reflection analysis (or 0.0 if not run)
-                let (f_pass, f_score) = liveness::process_screen_flash(y_slice, width as usize, height as usize, 0);
+                let (f_pass, f_score) =
+                    liveness::process_screen_flash(y_slice, width as usize, height as usize, 0);
                 flash_passed = f_pass;
                 flash_score = f_score;
             }
@@ -594,7 +597,8 @@ pub unsafe extern "C" fn open_face_process_frame(
 
     // Sensor Fusion Liveness Score
     let texture_score = (variance / 1000.0).min(1.0);
-    let liveness_score = (texture_score * 0.3 + jitter_score * 0.4 + flash_score * 0.3).clamp(0.0, 1.0);
+    let liveness_score =
+        (texture_score * 0.3 + jitter_score * 0.4 + flash_score * 0.3).clamp(0.0, 1.0);
 
     // 3. Determine liveness status and challenge
     let cfg = CONFIG.lock().unwrap();
@@ -609,21 +613,22 @@ pub unsafe extern "C" fn open_face_process_frame(
     let (match_json, hnsw_ms) = if liveness_passed {
         let search_start = Instant::now();
         let mut embedding = [0.0f32; 128];
-        
+
         // Execute GhostFaceNet Identity Extraction
         if let Some(ghost_model) = GHOST_NET.lock().unwrap().as_ref() {
             let dest_w = 112;
             let dest_h = 112;
             let mut input_data = vec![0.0f32; 3 * dest_w * dest_h];
-            
+
             // Extract center crop (50% of the screen) from the Grayscale Y-plane
             let cx = width as usize / 2;
             let cy = height as usize / 2;
             let crop_size = (width as usize).min(height as usize) / 2;
             let half = crop_size / 2;
-            
+
             let mut idx = 0;
-            for _c in 0..3 { // Duplicate Y to RGB
+            for _c in 0..3 {
+                // Duplicate Y to RGB
                 for dy in 0..dest_h {
                     for dx in 0..dest_w {
                         let src_x = cx - half + (dx * crop_size) / dest_w;
@@ -631,15 +636,17 @@ pub unsafe extern "C" fn open_face_process_frame(
                         // Clamp
                         let clamp_x = src_x.min(width as usize - 1);
                         let clamp_y = src_y.min(height as usize - 1);
-                        
+
                         let val = y_slice[clamp_y * (width as usize) + clamp_x] as f32;
                         input_data[idx] = (val - 127.5) / 128.0; // Normalize
                         idx += 1;
                     }
                 }
             }
-            
-            if let Ok(input_tensor) = tract_ndarray::Array4::from_shape_vec((1, 3, dest_h, dest_w), input_data) {
+
+            if let Ok(input_tensor) =
+                tract_ndarray::Array4::from_shape_vec((1, 3, dest_h, dest_w), input_data)
+            {
                 let tensor_val: Tensor = input_tensor.into();
                 if let Ok(outputs) = ghost_model.run(tvec![tensor_val.into()]) {
                     if let Some(out) = outputs.first() {
@@ -654,7 +661,7 @@ pub unsafe extern "C" fn open_face_process_frame(
                 }
             }
         }
-        
+
         let hnsw = HNSW.lock().unwrap();
         let results = hnsw.search(&embedding, 1);
         let elapsed = search_start.elapsed().as_secs_f64() * 1000.0;
@@ -716,7 +723,6 @@ pub unsafe extern "C" fn open_face_process_frame(
         },
         if liveness_passed || !texture_passed || !jitter_passed || (flash_state == -1 && is_live) {
             "none" // Success, Fail, or Supervisor mode (no challenges)
-
         } else if flash_state == 0 && is_live {
             "blink" // Front Camera Mode: Tier 3 ready, UI should ask for closed eyes
         } else if !flash_passed {
@@ -724,11 +730,7 @@ pub unsafe extern "C" fn open_face_process_frame(
         } else {
             "none"
         },
-        if liveness_passed {
-            1.0
-        } else {
-            liveness_score
-        },
+        if liveness_passed { 1.0 } else { liveness_score },
         flash_passed,
         jitter_passed,
         match_json,
