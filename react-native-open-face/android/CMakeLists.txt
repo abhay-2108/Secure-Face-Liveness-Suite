@@ -24,8 +24,21 @@ set_target_properties(OpenFace_engine PROPERTIES
 find_library(log-lib log)
 find_library(android-lib android)
 
+# Fetch libyuv for image conversion
+include(FetchContent)
+FetchContent_Declare(
+  libyuv
+  GIT_REPOSITORY https://chromium.googlesource.com/libyuv/libyuv
+  GIT_TAG main
+)
+FetchContent_MakeAvailable(libyuv)
+
 target_link_libraries(open_face_jni
     OpenFace_engine
+    yuv
     ${log-lib}
     ${android-lib}
 )
+
+# Ensure libyuv headers are accessible
+target_include_directories(open_face_jni PRIVATE ${libyuv_SOURCE_DIR}/include)
