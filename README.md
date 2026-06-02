@@ -14,6 +14,19 @@
     <strong>A military-grade, standalone facial recognition & liveness detection inference pipeline running entirely on local edge hardware.</strong>
   </p>
 
+  <blockquote>
+    <strong>Note on Nomenclature:</strong> <i>Aegis</i> is the product suite and external brand name. The internal core inference engine, React Native SDK, and C++ bridging codebase are referred to by their original engineering codename: <b>OpenFace</b>.
+  </blockquote>
+
+  <h3>⬇️ Download & Test the App</h3>
+  <p>
+    <a href="link-to-your-android-apk"><img src="https://img.shields.io/badge/Download-Android%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" /></a>
+    &nbsp;&nbsp;
+    <a href="link-to-your-ios-ipa"><img src="https://img.shields.io/badge/Download-iOS%20IPA-000000?style=for-the-badge&logo=apple&logoColor=white" /></a>
+  </p>
+  <p><i>Note: Please replace the placeholder links above with the actual release URLs after compiling the binaries.</i></p>
+
+  <br />
   <p>
     <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/badge/React%20Native-%3E%3D%200.70-61dafb.svg?style=for-the-badge&logo=react" alt="React Native" /></a>
     <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.70+-orange.svg?style=for-the-badge&logo=rust" alt="Rust" /></a>
@@ -32,6 +45,15 @@
 
 ## ⚡ Core Philosophy
 
+### 🔐 Zero-Trust Edge AI & Data Privacy (Zero Images Stored)
+Aegis operates under a strict **Zero-Trust Edge AI** paradigm, meaning it is physically impossible for the system to leak or store biometric images. 
+- **Ephemeral Processing:** The raw camera frames (YUV bytes) are streamed directly into the Rust engine's `MemoryArena` in volatile RAM. No image files (JPEG/PNG) are ever "clicked," saved to disk, or transmitted over a network.
+- **Irreversible Extraction:** The GhostFaceNet ONNX model instantly converts the face into a mathematical 128-Dimensional Vector (e.g., `[0.142, -0.993, 0.451...]`).
+- **Instant Purge:** The moment the vector is generated, the original raw image bytes are instantly destroyed by the Rust memory manager.
+- **What is Stored:** The encrypted local ledger only stores the 128-D vector and a User ID. Because 128-D vectors are mathematically irreversible, even if the ledger is compromised, a human face cannot be reconstructed. 
+This makes Aegis 100% compliant with strict biometric privacy laws (GDPR/CCPA).
+
+### 🚀 Tackling Edge AI Bottlenecks
 The Edge AI space is plagued by three massive problems: Memory Fragmentation, Thermal Meltdowns, and Biometric Theft. 
 
 OpenFace solves all of these by stripping away the operating system's garbage collector and strictly separating execution across a robust 4-Tier Pipeline.
@@ -48,24 +70,28 @@ flowchart TB
     end
 
     subgraph Tier 3: Rust Lock Arena & AI
-        D --> E{Liveness Engine}
-        E -->|Laplacian Variance| F(Focal Blur Check)
-        E -->|Mini-FAS-Net| G(Fourier Spoof Check)
-        F -->|Failed| REJ[Reject: Bad Lighting/Blur]
-        G -->|Failed| REJ2[Reject: 2D Screen/Photo]
+        D --> E{Waterfall Liveness}
+        E -->|Tier 1| F(Laplacian Texture)
+        F -->|Tier 2| G(Optical Flow Jitter)
+        G -->|Tier 3 / Front Cam| H(Screen Flash 3D)
         
-        G -->|Live Human Passed| H[GhostFaceNet Extraction]
-        H -->|128-D FP32 Embedding| I[(HNSW Vector Index)]
+        F -->|Failed| REJ[Reject: Flat Photo]
+        G -->|Failed| REJ[Reject: Static Screen]
+        H -->|Failed| REJ[Reject: Screen Glare]
+        
+        H -->|Live Human Passed| I[GhostFaceNet Extraction]
+        G -->|Live / Back Cam| I
+        I -->|128-D FP32 Embedding| J[(HNSW Vector Index)]
     end
 
     subgraph Tier 4: Zero-Trust Cryptography
-        I -->|Identity Match| J{ChaCha20 Decryptor}
-        J --> K[Encrypted SQLite Ledger]
+        J -->|Identity Match| K{ChaCha20 Decryptor}
+        K --> L[Encrypted SQLite Ledger]
     end
 
     style E fill:#ff4444,stroke:#333,color:#fff
-    style H fill:#00C851,stroke:#333,color:#fff
-    style K fill:#000,stroke:#dea584,stroke-width:2px,color:#fff
+    style I fill:#00C851,stroke:#333,color:#fff
+    style L fill:#000,stroke:#dea584,stroke-width:2px,color:#fff
 ```
 
 | 🧩 Tier | Technology | Responsibility | Hardware Intercept |

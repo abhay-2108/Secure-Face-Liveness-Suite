@@ -22,14 +22,14 @@
     "!android/.gradle",
     "!android/.cxx",
     "!ios/build",
-    "!example"
+    "!aegis-app"
   ],
   "scripts": {
     "typescript": "tsc --noEmit",
     "prepare": "bob build",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "build": "bob build",
-    "example": "cd example && npx react-native run-android"
+    "example": "cd aegis-app && npx react-native run-android"
   },
   "keywords": [
     "react-native",
@@ -43,11 +43,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/OpenFace-vision/react-native-open-face"
+    "url": "git+https://github.com/abhay-2108/Secure-Face-Liveness-Suite.git"
   },
-  "author": "OpenFace 3.0 <team@OpenFace.ai>",
+  "author": "Aegis Team",
   "license": "MIT",
-  "homepage": "https://github.com/OpenFace-vision/react-native-open-face#readme",
+  "homepage": "https://github.com/abhay-2108/Secure-Face-Liveness-Suite#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

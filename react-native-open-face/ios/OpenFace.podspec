@@ -8,11 +8,11 @@ Pod::Spec.new do |s|
     128-d embedding extraction, HNSW vector search, and offline-first
     encrypted identity management — all running on-device.
   DESC
-  s.homepage     = "https://github.com/OpenFace-vision/react-native-open-face"
+  s.homepage     = "https://github.com/abhay-2108/Secure-Face-Liveness-Suite"
   s.license      = { :type => "MIT", :file => "../LICENSE" }
-  s.author       = { "OpenFace 3.0" => "team@OpenFace.ai" }
+  s.author       = { "Aegis Team" => "" }
   s.platform     = :ios, "15.0"
-  s.source       = { :git => "https://github.com/OpenFace-vision/react-native-open-face.git", :tag => s.version }
+  s.source       = { :git => "https://github.com/abhay-2108/Secure-Face-Liveness-Suite.git", :tag => s.version }
 
   s.source_files = "*.{h,m,mm}"
   

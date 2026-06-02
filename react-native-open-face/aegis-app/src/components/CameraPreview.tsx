@@ -4,11 +4,12 @@ import { Camera, useCameraDevice, useCameraPermission } from 'react-native-visio
 
 interface CameraPreviewProps {
   frameProcessor?: any;
+  cameraPosition: 'front' | 'back';
 }
 
-export const CameraPreview: React.FC<CameraPreviewProps> = ({ frameProcessor }) => {
+export const CameraPreview: React.FC<CameraPreviewProps> = ({ frameProcessor, cameraPosition }) => {
   const [aeStatus, setAeStatus] = useState('AE/AF: Global Average');
-  const device = useCameraDevice('front');
+  const device = useCameraDevice(cameraPosition);
   const { hasPermission, requestPermission } = useCameraPermission();
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({ frameProcessor }) 
     const devices = Camera.getAvailableCameraDevices();
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>No Camera Device Found (front).</Text>
+        <Text style={styles.permissionText}>No Camera Device Found ({cameraPosition}).</Text>
         <Text style={styles.permissionText}>Available Devices: {devices.length}</Text>
         {devices.map((d, i) => (
           <Text key={i} style={styles.permissionText}>- {d.position} ({d.id})</Text>

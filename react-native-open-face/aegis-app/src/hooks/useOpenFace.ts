@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { NativeModules } from 'react-native';
+import { NativeModules, Vibration } from 'react-native';
 import { useFrameProcessor } from 'react-native-vision-camera';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
@@ -72,8 +72,18 @@ export function useOpenFace() {
 
   // Feature 1: Screen Flash Orchestration
   const flashState = useSharedValue(0); // 0 = None, 1 = Dark, 2 = Lit
-  const [flashColor, setFlashColor] = useState<'transparent' | 'black' | 'white'>('transparent');
+  const [flashColor, setFlashColor] = useState<string>('transparent');
   const flashExecutedRef = useRef(false);
+
+  // Feature 4: Supervisor Mode (Back Camera)
+  const isBackCamera = useSharedValue(0); // 0 = front, 1 = back
+  const [uiCameraPosition, setUiCameraPosition] = useState<'front' | 'back'>('front');
+
+  const toggleCamera = useCallback(() => {
+    const newPos = isBackCamera.value === 0 ? 1 : 0;
+    isBackCamera.value = newPos;
+    setUiCameraPosition(newPos === 0 ? 'front' : 'back');
+  }, [isBackCamera]);
 
   // -------------------------------------------------------------------------
   // Initialize engine via the new API (falls back to legacy if needed)
@@ -134,13 +144,13 @@ export function useOpenFace() {
     try {
       // Step A: Dark frame capture baseline
       flashState.value = 1;
-      setFlashColor('black');
+      setFlashColor('#121212'); // Off-black (less harsh than pure #000)
       setLivenessPrompt('Screen Flash: Capturing dark baseline...');
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Step B: Lit frame capture illumination
       flashState.value = 2;
-      setFlashColor('white');
+      setFlashColor('#F5F5F5'); // Off-white (less blinding than pure #FFF)
       setLivenessPrompt('Screen Flash: Analyzing 3D reflection...');
       await new Promise((resolve) => setTimeout(resolve, 180));
 
@@ -148,6 +158,9 @@ export function useOpenFace() {
       flashState.value = 0;
       setFlashColor('transparent');
       setLivenessPrompt('');
+      
+      // Send a brief haptic pulse so the user knows the flash is over and they can open their eyes!
+      Vibration.vibrate(60);
     } catch {
       flashState.value = 0;
       setFlashColor('transparent');
@@ -200,7 +213,14 @@ export function useOpenFace() {
         } else if (challenge === 'turn_head') {
           setLivenessPrompt('turn head slightly');
         } else if (challenge === 'blink') {
-          setLivenessPrompt('blink naturally');
+          setLivenessPrompt('Close your eyes for a quick secure scan...');
+          // Trigger the Screen Flash while their eyes are closed!
+          if (!flashExecutedRef.current) {
+            flashExecutedRef.current = true;
+            setTimeout(() => {
+              triggerScreenFlash();
+            }, 1000); // Give user 1 second to close eyes
+          }
         } else {
           setLivenessPrompt('');
         }
@@ -216,9 +236,13 @@ export function useOpenFace() {
     'worklet';
     // @ts-ignore — processOpenFace is registered natively
     if (global.processOpenFace) {
-      // Pass flashState as a direct parameter to JSI Frame Processor
+      // Pass flashState as a direct parameter to JSI Frame Processor.
+      // Magic Number: -1 tells the Rust engine we are using the Back Camera (Supervisor Mode)
+      // and it will completely bypass the Screen Flash liveness check.
+      const effectiveFlashState = isBackCamera.value === 1 ? -1 : flashState.value;
+      
       // @ts-ignore
-      const resultStr = global.processOpenFace(frame, { flashState: flashState.value });
+      const resultStr = global.processOpenFace(frame, { flashState: effectiveFlashState });
       if (resultStr && typeof resultStr === 'string') {
         // Use runOnJS to send results back to the React JS thread
         runOnJS(handleFrameResult)(resultStr);
@@ -268,5 +292,7 @@ export function useOpenFace() {
     triggerScreenFlash,
     setLivenessPrompt,
     setMatchId,
+    cameraPosition: uiCameraPosition,
+    toggleCamera,
   };
 }

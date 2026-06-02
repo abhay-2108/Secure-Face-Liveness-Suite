@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableWithoutFeedback, Animated, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableWithoutFeedback, TouchableOpacity, Animated, Text, Dimensions } from 'react-native';
 import { CameraPreview } from '../components/CameraPreview';
 import { LivenessPromptUI } from '../components/LivenessPromptUI';
 import { TelemetryHUD } from '../components/TelemetryHUD';
@@ -9,7 +9,12 @@ import { useOpenFace } from '../hooks/useOpenFace';
 const { width, height } = Dimensions.get('window');
 const SCAN_BOX_SIZE = width * 0.7;
 
-export const AuthenticationScreen: React.FC = () => {
+interface AuthScreenProps {
+  onSuccess: (matchId: string) => void;
+  onCancel: () => void;
+}
+
+export const AuthenticationScreen: React.FC<AuthScreenProps> = ({ onSuccess, onCancel }) => {
   const {
     isReady,
     initializeEngine,
@@ -21,6 +26,8 @@ export const AuthenticationScreen: React.FC = () => {
     error,
     frameProcessor,
     flashColor,
+    cameraPosition,
+    toggleCamera,
   } = useOpenFace();
 
   const [showTelemetry, setShowTelemetry] = useState(false);
@@ -42,8 +49,14 @@ export const AuthenticationScreen: React.FC = () => {
       ).start();
     } else if (matchId) {
       pulseAnim.stopAnimation();
+      
+      // Short delay so user sees the green success frame before transitioning
+      const timer = setTimeout(() => {
+        onSuccess(matchId);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [isReady, matchId, pulseAnim]);
+  }, [isReady, matchId, pulseAnim, onSuccess]);
 
   // Determine frame color based on liveness status
   const getFrameColor = () => {
@@ -56,7 +69,19 @@ export const AuthenticationScreen: React.FC = () => {
   return (
     <TouchableWithoutFeedback onPress={() => setShowTelemetry(prev => !prev)} delayPressIn={500}>
       <View style={styles.container}>
-        <CameraPreview frameProcessor={frameProcessor} />
+        <CameraPreview frameProcessor={frameProcessor} cameraPosition={cameraPosition} />
+
+        {/* Top Bar Navigation */}
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.topButton} onPress={onCancel}>
+            <Text style={styles.topButtonText}>✕ Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.topButton} onPress={toggleCamera}>
+            <Text style={styles.topButtonText}>
+              {cameraPosition === 'front' ? '🔄 Back Cam' : '🔄 Front Cam'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Interactive Screen Flash Overlay (Zero-ML Reflection Liveness) */}
         {flashColor !== 'transparent' && (
@@ -136,6 +161,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  topBar: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  topButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  topButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   // Overlay styles for the cutout effect
   overlayContainer: {

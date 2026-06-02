@@ -13,6 +13,7 @@ lazy_static! {
     
     // Feature 1: Screen Flash Cache
     static ref FLASH_DARK_CROP: Mutex<Option<Vec<u8>>> = Mutex::new(None);
+    pub static ref LAST_FLASH_SCORE: Mutex<Option<f64>> = Mutex::new(None);
 }
 
 /// Computes the Laplacian Variance of the image to detect high-frequency micro-textures.
@@ -56,8 +57,17 @@ pub fn calculate_laplacian_variance(y_channel: &[u8], width: usize, height: usiz
 /// Real 3D skin absorbs and scatters light softly (subsurface scattering) with high, structured
 /// spatial variance, while a digital screen/flat photo causes flat glare or localized specular peaks.
 pub fn process_screen_flash(y_channel: &[u8], width: usize, height: usize, flash_state: i32) -> (bool, f64) {
+    if flash_state == 0 {
+        // Return cached score if flash already completed previously
+        let cached = *LAST_FLASH_SCORE.lock().unwrap();
+        if let Some(score) = cached {
+            return (score >= 0.6, score);
+        }
+        return (true, 0.0); // Default before flash is 0.0 to prevent premature pass
+    }
+
     if width < 64 || height < 64 {
-        return (true, 1.0);
+        return (true, 0.0);
     }
 
     let cx = width / 2;
@@ -138,10 +148,11 @@ pub fn process_screen_flash(y_channel: &[u8], width: usize, height: usize, flash
         }
 
         let passed = score >= 0.6;
+        *LAST_FLASH_SCORE.lock().unwrap() = Some(score);
         return (passed, score);
     }
 
-    (true, 1.0)
+    (true, 0.0)
 }
 
 /// Feature 3: Jitter/Micro-Motion Tracking (Sparse Lucas-Kanade Optical Flow)

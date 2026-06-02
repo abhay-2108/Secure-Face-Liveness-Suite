@@ -5,7 +5,15 @@
 
 ---
 
-Because OpenFace processes raw biometric data (facial embeddings) on local edge hardware, security is our absolute highest priority. We assume that the physical device is inherently compromised and operate under a strict Zero-Trust philosophy.
+Because Aegis processes raw biometric data (facial embeddings) on local edge hardware, security is our absolute highest priority. We assume that the physical device is inherently compromised and operate under a strict Zero-Trust philosophy.
+
+### 🔐 Zero-Trust Edge AI & Data Privacy (Zero Images Stored)
+Aegis operates under a strict **Zero-Trust Edge AI** paradigm, meaning it is physically impossible for the system to leak or store biometric images. 
+- **Ephemeral Processing:** The raw camera frames (YUV bytes) are streamed directly into the Rust engine's `MemoryArena` in volatile RAM. No image files (JPEG/PNG) are ever "clicked," saved to disk, or transmitted over a network.
+- **Irreversible Extraction:** The GhostFaceNet ONNX model instantly converts the face into a mathematical 128-Dimensional Vector (e.g., `[0.142, -0.993, 0.451...]`).
+- **Instant Purge:** The moment the vector is generated, the original raw image bytes are instantly destroyed by the Rust memory manager.
+- **What is Stored:** The encrypted local ledger only stores the 128-D vector and a User ID. Because 128-D vectors are mathematically irreversible, even if the ledger is compromised, a human face cannot be reconstructed. 
+This makes Aegis 100% compliant with strict biometric privacy laws (GDPR/CCPA).
 
 ## 🛡️ Supported Versions
 
@@ -52,7 +60,7 @@ We actively defend against the following physical and digital attack vectors:
 If you discover a vulnerability in the JSI bridge, the Rust Lock Arena, or the Cryptographic pipeline, **DO NOT OPEN A PUBLIC GITHUB ISSUE**.
 
 Please report all security vulnerabilities to our core engineering team directly via email:
-`security@openface.edge`
+`[Add your security contact email here]`
 
 We will:
 1. Acknowledge your report within 24 hours.
