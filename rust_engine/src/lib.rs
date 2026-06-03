@@ -507,7 +507,8 @@ pub extern "C" fn open_face_load_model_zero_copy(_asset_manager_ptr: *mut std::f
 ///
 /// - `y_ptr` must be a valid, non-null pointer to a buffer of at least `width * height` bytes.
 /// - The buffer must remain valid and unmodified for the duration of this call.
-/// - This function must not be called concurrently from multiple threads with the same buff#[no_mangle]
+/// - This function must not be called concurrently from multiple threads with the same buffer.
+#[no_mangle]
 pub unsafe extern "C" fn open_face_process_frame(
     y_ptr: *mut u8,
     width: i32,

@@ -33,9 +33,9 @@ Cargo.lock
 # ------------------------------------------------------------------------------
 # 3. React Native (react-native-open-face)
 # ------------------------------------------------------------------------------
-react-native-open-face/node_modules/
+**/node_modules/
 react-native-open-face/lib/
-react-native-open-face/aegis-app/node_modules/
+react-native-open-face/example/
 .yarn/
 *.tgz
 

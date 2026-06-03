@@ -30,7 +30,7 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     // Load the Rust engine and JNI bridge native libraries
     static {
         try {
-            System.loadLibrary("OpenFace_engine");
+            System.loadLibrary("open_face_engine");
             System.loadLibrary("open_face_jni");
             // Register the VisionCamera frame processor plugin
             com.mrousavy.camera.frameprocessors.FrameProcessorPluginRegistry
