@@ -19,3 +19,8 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    buildDir = new File("P:/tmp/aegis-app-build/${project.name}")
+}
+
