@@ -10,3 +10,9 @@
 # Add any project specific keep options here:
 
 -dontwarn androidx.camera.extensions.**
+
+# Hermes rules
+-keep class com.facebook.hermes.unicode.** { *; }
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.hermes.reactexecutor.** { *; }
+-keep class com.facebook.react.hermes.** { *; }
