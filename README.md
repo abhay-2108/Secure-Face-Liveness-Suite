@@ -30,6 +30,8 @@
     <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.70+-orange.svg?style=for-the-badge&logo=rust" alt="Rust" /></a>
     <a href="https://github.com/onnx/onnx"><img src="https://img.shields.io/badge/ONNX-INT8/FP16-brightgreen.svg?style=for-the-badge&logo=onnx" alt="ONNX" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License" /></a>
+    <br />
+    <a href="https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite"><img src="https://img.shields.io/badge/📖_DeepWiki-Interactive_Docs-7B68EE?style=for-the-badge" alt="DeepWiki Documentation" /></a>
   </p>
 </div>
 
@@ -133,7 +135,23 @@ To truly understand how this engine bypasses memory fragmentation and serializat
 
 - 📚 **[ARCHITECTURE.md](./ARCHITECTURE.md)**: A deep dive into the 4-Tier Zero-Copy bridge and the mathematical implications of the Lock Arena.
 
----
+<div align="center">
+
+<br />
+
+### 🌐 Interactive Documentation Portal
+
+<a href="https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite">
+  <img src="https://img.shields.io/badge/📖_DeepWiki-Explore_Full_Documentation-7B68EE?style=for-the-badge&logoColor=white" alt="DeepWiki" />
+</a>
+
+<br />
+<br />
+
+> 🔬 **[DeepWiki](https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite)** provides an AI-powered, interactive deep-dive into every module of this project — from the Rust `MemoryArena` internals and HNSW vector search, to the C++ JNI bridge, liveness waterfall pipeline, and the full React Native SDK architecture. Perfect for judges, contributors, and anyone who wants to understand the engineering behind Aegis without reading thousands of lines of source code.
+
+</div>
+
 
 ## 🏃 Quick Start (Mobile SDK)
 
