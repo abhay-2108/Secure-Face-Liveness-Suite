@@ -474,10 +474,10 @@ pub extern "C" fn open_face_load_model_zero_copy(
         };
 
         let mut ghost_guard = GHOST_NET.lock().unwrap();
-        *ghost_guard = load_model("ghostfacenet.onnx");
+        *ghost_guard = load_model("ghostfacenet_s_int8.onnx");
 
         let mut live_guard = LIVENESS_NET.lock().unwrap();
-        *live_guard = load_model("liveness.onnx");
+        *live_guard = load_model("mini_fas_net_int8.onnx");
 
         if ghost_guard.is_some() && live_guard.is_some() {
             // Update model size metric

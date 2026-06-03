@@ -35,16 +35,7 @@ android {
     buildFeatures {
         prefab true
     }
-    
-    // RED-TEAM FIX: Enable ABI Splitting to enforce <20MB size constraint
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'arm64-v8a'
-            universalApk false
-        }
-    }
+
 
     externalNativeBuild {
         cmake {

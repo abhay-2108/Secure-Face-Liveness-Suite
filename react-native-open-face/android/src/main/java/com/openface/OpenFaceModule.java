@@ -52,8 +52,6 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     private native void   nativeTriggerSync();
     private native void   nativeShutdown();
     private native int    nativeLoadModels(AssetManager assetManager);
-    private native void   initializeEngineFromPath(String path);
-    private native void   initializeEngineFromAsset(AssetManager assetManager);
 
     public OpenFaceModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -69,14 +67,16 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     public void loadModels(String customOtaPath, Promise promise) {
         new Thread(() -> {
             try {
-                if (customOtaPath != null && !customOtaPath.isEmpty()) {
-                    // 1. OTA Mode: Pass the absolute string path to Rust
-                    initializeEngineFromPath(customOtaPath);
+                // Load ONNX models from APK assets via zero-copy AAssetManager
+                AssetManager assetManager = getReactApplicationContext().getAssets();
+                int result = nativeLoadModels(assetManager);
+                if (result == 1) {
+                    promise.resolve(true);
                 } else {
-                    // 2. Fallback Mode: Pass the Android AssetManager
-                    initializeEngineFromAsset(getReactApplicationContext().getAssets());
+                    // Models not found in assets — engine still works in heuristic mode
+                    android.util.Log.w(NAME, "ONNX models not found in assets. Falling back to heuristic mode.");
+                    promise.resolve(true);
                 }
-                promise.resolve(true);
             } catch (Exception e) {
                 promise.reject("MODEL_LOAD_ERROR", e);
             }
