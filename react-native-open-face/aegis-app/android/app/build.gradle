@@ -54,7 +54,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -75,6 +75,16 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.aegisapp"
+
+    splits {
+        abi {
+            reset()
+            enable true
+            universalApk false
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+    }
+
     defaultConfig {
         applicationId "com.aegisapp"
         minSdkVersion rootProject.ext.minSdkVersion
