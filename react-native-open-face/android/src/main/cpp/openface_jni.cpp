@@ -74,14 +74,14 @@ static jstring rustStringToJString(JNIEnv* env, char* rust_str) {
 
 // Legacy: open_face_init() → int
 extern "C" JNIEXPORT jint JNICALL
-Java_com_openface_OpenFaceModule_nativeInit(JNIEnv* env, jobject /* thiz */) {
+Java_com_OpenFace_OpenFaceModule_nativeInit(JNIEnv* env, jobject /* thiz */) {
     LOGI("Calling Rust open_face_init()");
     return open_face_init();
 }
 
 // initialize(configJson: String): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeInitialize(
+Java_com_OpenFace_OpenFaceModule_nativeInitialize(
     JNIEnv* env, jobject /* thiz */, jstring configJson) {
     const char* config = env->GetStringUTFChars(configJson, nullptr);
     LOGI("Calling open_face_initialize with config");
@@ -92,7 +92,7 @@ Java_com_openface_OpenFaceModule_nativeInitialize(
 
 // searchIdentity(embeddingJson: String): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeSearchIdentity(
+Java_com_OpenFace_OpenFaceModule_nativeSearchIdentity(
     JNIEnv* env, jobject /* thiz */, jstring embeddingJson) {
     const char* embedding = env->GetStringUTFChars(embeddingJson, nullptr);
     char* result = open_face_search_identity(embedding);
@@ -102,7 +102,7 @@ Java_com_openface_OpenFaceModule_nativeSearchIdentity(
 
 // enrollIdentity(label: String, embeddingJson: String): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeEnrollIdentity(
+Java_com_OpenFace_OpenFaceModule_nativeEnrollIdentity(
     JNIEnv* env, jobject /* thiz */, jstring label, jstring embeddingJson) {
     const char* labelStr = env->GetStringUTFChars(label, nullptr);
     const char* embedding = env->GetStringUTFChars(embeddingJson, nullptr);
@@ -114,7 +114,7 @@ Java_com_openface_OpenFaceModule_nativeEnrollIdentity(
 
 // getSyncStatus(): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeGetSyncStatus(
+Java_com_OpenFace_OpenFaceModule_nativeGetSyncStatus(
     JNIEnv* env, jobject /* thiz */) {
     char* result = open_face_get_sync_status();
     return rustStringToJString(env, result);
@@ -122,7 +122,7 @@ Java_com_openface_OpenFaceModule_nativeGetSyncStatus(
 
 // getMetrics(): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeGetMetrics(
+Java_com_OpenFace_OpenFaceModule_nativeGetMetrics(
     JNIEnv* env, jobject /* thiz */) {
     char* result = open_face_get_metrics();
     return rustStringToJString(env, result);
@@ -130,7 +130,7 @@ Java_com_openface_OpenFaceModule_nativeGetMetrics(
 
 // forcePurge(): String
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceModule_nativeForcePurge(
+Java_com_OpenFace_OpenFaceModule_nativeForcePurge(
     JNIEnv* env, jobject /* thiz */) {
     char* result = open_face_force_purge();
     return rustStringToJString(env, result);
@@ -138,14 +138,14 @@ Java_com_openface_OpenFaceModule_nativeForcePurge(
 
 // triggerSync(): void
 extern "C" JNIEXPORT void JNICALL
-Java_com_openface_OpenFaceModule_nativeTriggerSync(
+Java_com_OpenFace_OpenFaceModule_nativeTriggerSync(
     JNIEnv* env, jobject /* thiz */) {
     open_face_trigger_sync();
 }
 
 // shutdown(): void
 extern "C" JNIEXPORT void JNICALL
-Java_com_openface_OpenFaceModule_nativeShutdown(
+Java_com_OpenFace_OpenFaceModule_nativeShutdown(
     JNIEnv* env, jobject /* thiz */) {
     LOGI("Shutting down Rust engine");
     open_face_shutdown();
@@ -153,7 +153,7 @@ Java_com_openface_OpenFaceModule_nativeShutdown(
 
 // loadModels(AssetManager): int
 extern "C" JNIEXPORT jint JNICALL
-Java_com_openface_OpenFaceModule_nativeLoadModels(
+Java_com_OpenFace_OpenFaceModule_nativeLoadModels(
     JNIEnv* env, jobject /* thiz */, jobject assetManager) {
     LOGI("Loading ONNX models via zero-copy AAssetManager");
     return open_face_load_model_zero_copy(env, assetManager);
@@ -163,7 +163,7 @@ Java_com_openface_OpenFaceModule_nativeLoadModels(
 // OpenFaceFrameProcessorPlugin JNI binding
 // ============================================================================
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_openface_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
+Java_com_OpenFace_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
     JNIEnv* env, jobject /* thiz */,
     jobject directBuffer, jint width, jint height, jint stride, jint flashState) {
 
