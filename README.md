@@ -137,7 +137,7 @@ To truly understand how this engine bypasses memory fragmentation and serializat
 
 ## 🏃 Quick Start (Mobile SDK)
 
-To build and run the provided React Native example app natively on your device:
+To build and run the provided React Native aegis-app app natively on your device:
 
 ```bash
 cd react-native-open-face/aegis-app
@@ -148,7 +148,7 @@ yarn android
 
 ```
 
-> **Note:** The example application will only run on physical hardware. Simulators do not support the raw camera JSI bridging required by OpenFace.
+> **Note:** The aegis-app will only run on physical hardware. Simulators do not support the raw camera JSI bridging required by OpenFace.
 
 <div align="center">
   <br/>

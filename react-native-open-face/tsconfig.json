@@ -30,5 +30,5 @@
     "outDir": "lib/typescript"
   },
   "include": ["src"],
-  "exclude": ["lib", "node_modules", "example"]
+  "exclude": ["lib", "node_modules", "aegis-app"]
 }

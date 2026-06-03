@@ -4,6 +4,10 @@ project("open_face" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Fix for 16KB page alignment on Android 15+ devices
+# Enable PIE (Position Independent Executable) for all binaries
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Path to the pre-built Rust shared library
 set(RUST_LIB_DIR "${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}")
 

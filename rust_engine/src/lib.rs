@@ -57,7 +57,7 @@ impl Default for EngineConfig {
             arena_size: 40,
             model_path: String::new(),
             hnsw_index_path: String::new(),
-            ledger_db_path: String::from("/data/data/com.OpenFace.example/files/ledger.bin"),
+            ledger_db_path: String::from("/data/data/com.aegisapp/files/ledger.bin"),
             clahe_clip_limit: 2.0,
             inference_threads: 2,
             match_threshold: 0.68,

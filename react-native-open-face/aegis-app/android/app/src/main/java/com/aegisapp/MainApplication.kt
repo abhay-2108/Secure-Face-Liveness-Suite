@@ -1,4 +1,4 @@
-package com.temp_example
+package com.aegisapp
 
 import android.app.Application
 import com.facebook.react.PackageList

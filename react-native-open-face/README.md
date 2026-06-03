@@ -48,7 +48,7 @@ Ensure your `android/local.properties` file contains the correct absolute path t
 OpenFace hooks seamlessly into `react-native-vision-camera`. The `useOpenFace` hook abstracts the entire complex Rust memory arena, threading, and JSI bridge into a simple, declarative React state.
 
 ```tsx
-import { useOpenFace } from 'react-native-open-face/example/src/hooks/useOpenFace';
+import { useOpenFace } from 'react-native-open-face/aegis-app/src/hooks/useOpenFace';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { StyleSheet, Text, View } from 'react-native';
 
