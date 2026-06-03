@@ -147,7 +147,7 @@ graph TB
 ```java
 // OpenFaceModule.java — Loading the Rust shared library + JNI bridge
 static {
-    System.loadLibrary("OpenFace_engine");    // Pre-compiled Rust .so
+    System.loadLibrary("open_face_engine");    // Pre-compiled Rust .so
     System.loadLibrary("open_face_jni");      // C++ JNI bridge
     // Register VisionCamera frame processor
     FrameProcessorPluginRegistry.addFrameProcessorPlugin(
