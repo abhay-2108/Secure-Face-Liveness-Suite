@@ -1692,7 +1692,7 @@ Secure-Face-Liveness-Suite/
 ├── 📄 ARCHITECTURE.md                  # Architecture documentation
 ├── 📄 SECURITY.md                      # Security architecture docs
 ├── 📄 BENCHMARK.md                     # Performance benchmark docs
-├── 📄 SUBMISSION_DOCUMENT.md           # This document
+├── 📄 Detailed Documentation.md           # This document
 ├── 📄 LICENSE                          # MIT License
 ├── 📄 .gitignore                       # Comprehensive multi-language ignores
 ├── 📄 benchmark_results.json           # GPU benchmark data (RTX 4050)
@@ -1730,7 +1730,7 @@ Secure-Face-Liveness-Suite/
 │   │       └── java/.../               # OpenFaceModule.kt + Package.kt
 │   ├── ios/
 │   │   └── OpenFace.mm                 # Objective-C++ bridge
-│   └── example/                        # Demo application
+│   └── aegis-app/                        # Demo application
 │       ├── src/App.tsx                  # Example UI with camera
 │       └── android/                    # Android project files
 │
@@ -1821,15 +1821,15 @@ Secure-Face-Liveness-Suite/
 ### Step 1: Clone and Install Dependencies
 
 ```bash
-git clone https://github.com/your-org/Secure-Face-Liveness-Suite.git
+git clone https://github.com/abhay-2108/Secure-Face-Liveness-Suite.git
 cd Secure-Face-Liveness-Suite
 
 # Install React Native SDK dependencies
 cd react-native-open-face
 yarn install
 
-# Install example app dependencies
-cd example
+# Install aegis-app dependencies
+cd aegis-app
 yarn install
 cd ../..
 ```
@@ -1864,7 +1864,7 @@ This fetches the quantized ONNX models from HuggingFace Hub and places them in t
 ### Step 4: Build the Android APK
 
 ```bash
-cd react-native-open-face/example/android
+cd react-native-open-face/aegis-app/android
 chmod +x ./gradlew
 ./gradlew assembleDebug
 ```
