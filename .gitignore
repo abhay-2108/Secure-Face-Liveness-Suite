@@ -83,3 +83,13 @@ Thumbs.db
 
 data/
 react-native-datalake-vision/
+
+# ------------------------------------------------------------------------------
+# 6. Aegis Mobile (New App)
+# ------------------------------------------------------------------------------
+aegis-mobile/android/build/
+aegis-mobile/android/.gradle/
+aegis-mobile/android/app/build/
+aegis-mobile/ios/build/
+aegis-mobile/ios/Pods/
+aegis-mobile/.yarn/

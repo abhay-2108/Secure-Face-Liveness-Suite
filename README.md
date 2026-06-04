@@ -18,12 +18,6 @@
     <strong>Note on Nomenclature:</strong> <i>Aegis</i> is the product suite and external brand name. The internal core inference engine, React Native SDK, and C++ bridging codebase are referred to by their original engineering codename: <b>OpenFace</b>.
   </blockquote>
 
-  <h3>⬇️ Download & Test the App</h3>
-  <p>
-    <a href="link-to-your-android-apk"><img src="https://img.shields.io/badge/Download-Android%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" /></a>
-  </p>
-  <p><i>Note: Please replace the placeholder links above with the actual release URLs after compiling the binaries.</i></p>
-
   <br />
   <p>
     <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/badge/React%20Native-%3E%3D%200.70-61dafb.svg?style=for-the-badge&logo=react" alt="React Native" /></a>
@@ -42,6 +36,22 @@
 </div>
 
 ---
+
+## 📱 Aegis Mobile (Primary App)
+
+The production demo app lives in `aegis-mobile/` and is the primary UI for live camera authentication and enrollment.
+
+```bash
+cd aegis-mobile
+yarn install
+yarn android
+```
+
+> **Note:** A physical Android device is required for VisionCamera frame processors.
+
+The `react-native-open-face/aegis-app` folder is kept as a minimal sample and may lag behind the main app.
+
+Sync settings live in `aegis-mobile/src/config/sync.ts`.
 
 ## ⚡ Core Philosophy
 
@@ -155,10 +165,10 @@ To truly understand how this engine bypasses memory fragmentation and serializat
 
 ## 🏃 Quick Start (Mobile SDK)
 
-To build and run the provided React Native aegis-app app natively on your device:
+To build and run the primary Aegis Mobile app on your device:
 
 ```bash
-cd react-native-open-face/aegis-app
+cd aegis-mobile
 yarn install
 
 # Run on Android Hardware

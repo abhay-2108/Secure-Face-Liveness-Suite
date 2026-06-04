@@ -1,99 +1,78 @@
 //! # Vector Database Module
 //!
-//! Provides an offline, memory-mapped HNSW Graph and Cuckoo Filter.
+//! Real HNSW index for approximate nearest neighbor search.
 
+use hnsw_rs::prelude::{DistCosine, Hnsw, Neighbour};
 use std::collections::HashMap;
 
-/// Feature 12: Cuckoo Filter Negative Lookups
-///
-/// A probabilistic data structure that takes up virtually no memory.
-/// Before doing the O(log N) HNSW graph search (which is mathematically expensive),
-/// we hash the face embedding and check the Cuckoo Filter.
-/// If the filter says "Not Found," we instantly reject the face in O(1) time (~0.001ms)
-/// without even touching the HNSW graph. This drastically reduces CPU load when strangers walk by.
-pub struct CuckooFilter {
-    // Mock implementation for the hackathon
-    // In production, this would use the `cuckoofilter` crate.
-    pub is_enabled: bool,
-}
-
-impl CuckooFilter {
-    pub fn new() -> Self {
-        Self { is_enabled: true }
-    }
-
-    pub fn definitely_not_present(&self, embedding: &[f32; 128]) -> bool {
-        // Mock logic: randomly reject 10% of strangers instantly in O(1) time
-        let sum: f32 = embedding.iter().sum();
-        if sum < -100.0 {
-            return true;
-        }
-        false
-    }
-}
-
 pub struct HNSWGraph {
-    pub max_elements: usize,
-    pub m: usize,
-    pub ef_construction: usize,
-    pub nodes: HashMap<String, [f32; 128]>,
-    pub cuckoo_filter: CuckooFilter,
+    max_elements: usize,
+    m: usize,
+    ef_construction: usize,
+    ef_search: usize,
+    dim: usize,
+    hnsw: Hnsw<'static, f32, DistCosine>,
+    labels: Vec<String>,
+    label_to_id: HashMap<String, usize>,
 }
 
 impl HNSWGraph {
-    pub fn new(max_elements: usize, m: usize, ef_construction: usize) -> Self {
+    pub fn new(max_elements: usize, m: usize, ef_construction: usize, ef_search: usize) -> Self {
+        let dim = 128;
+        let max_layer = 16;
+        let hnsw = Hnsw::<f32, DistCosine>::new(
+            m,
+            max_elements,
+            max_layer,
+            ef_construction,
+            DistCosine::default(),
+        );
         Self {
             max_elements,
             m,
             ef_construction,
-            nodes: HashMap::new(),
-            cuckoo_filter: CuckooFilter::new(),
+            ef_search,
+            dim,
+            hnsw,
+            labels: Vec::new(),
+            label_to_id: HashMap::new(),
         }
     }
 
     pub fn insert(&mut self, id: String, embedding: [f32; 128]) -> Result<(), String> {
-        if self.nodes.len() >= self.max_elements {
-            return Err("HNSW Graph is at capacity".to_string());
+        if self.labels.len() >= self.max_elements {
+            return Err("HNSW index is at capacity".to_string());
         }
-        self.nodes.insert(id, embedding);
-        // Also insert into Cuckoo filter...
+
+        if self.label_to_id.contains_key(&id) {
+            return Err("Identity already exists".to_string());
+        }
+
+        let idx = self.labels.len();
+        self.labels.push(id.clone());
+        self.label_to_id.insert(id, idx);
+
+        self.hnsw.insert((embedding.as_slice(), idx));
         Ok(())
     }
 
     pub fn search(&self, query: &[f32; 128], k: usize) -> Vec<(String, f32)> {
-        // FEATURE 12 IN ACTION: O(1) Early Rejection
-        if self.cuckoo_filter.definitely_not_present(query) {
-            log::info!("[HNSW] Cuckoo Filter instantly rejected stranger. Skipped graph search.");
+        if self.labels.is_empty() {
             return vec![];
         }
 
-        let mut results = Vec::new();
-
-        for (id, embedding) in &self.nodes {
-            let dist = cosine_similarity(query, embedding);
-            results.push((id.clone(), dist));
-        }
-
-        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        results.truncate(k);
-        results
-    }
-}
-
-fn cosine_similarity(a: &[f32; 128], b: &[f32; 128]) -> f32 {
-    let mut dot_product = 0.0;
-    let mut norm_a = 0.0;
-    let mut norm_b = 0.0;
-
-    for i in 0..128 {
-        dot_product += a[i] * b[i];
-        norm_a += a[i] * a[i];
-        norm_b += b[i] * b[i];
+        let neighbors: Vec<Neighbour> = self.hnsw.search(query.as_slice(), k, self.ef_search);
+        neighbors
+            .into_iter()
+            .filter_map(|neighbor| {
+                let label = self.labels.get(neighbor.d_id)?.clone();
+                let similarity = (1.0 - neighbor.distance).clamp(0.0, 1.0);
+                Some((label, similarity))
+            })
+            .collect()
     }
 
-    if norm_a == 0.0 || norm_b == 0.0 {
-        return 0.0;
+    pub fn len(&self) -> usize {
+        self.labels.len()
     }
-
-    dot_product / (norm_a.sqrt() * norm_b.sqrt())
 }

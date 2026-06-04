@@ -40,9 +40,17 @@ extern "C" {
 
     // New comprehensive API
     char* open_face_initialize(const char* config_json);
+    char* open_face_set_device_id(const char* device_id);
     char* open_face_search_identity(const char* embedding_json);
     char* open_face_enroll_identity(const char* label, const char* embedding_json);
     char* open_face_get_sync_status();
+    char* open_face_export_ledger_base64();
+    char* open_face_verify_and_purge(
+        const char* record_ids_json,
+        const char* purge_token_hex,
+        const char* server_public_key_hex
+    );
+    char* open_face_set_sync_status(const char* status);
     char* open_face_get_metrics();
     char* open_face_force_purge();
     void  open_face_trigger_sync();
@@ -90,6 +98,16 @@ Java_com_OpenFace_OpenFaceModule_nativeInitialize(
     return rustStringToJString(env, result);
 }
 
+// setDeviceId(deviceId: String): String
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_OpenFace_OpenFaceModule_nativeSetDeviceId(
+    JNIEnv* env, jobject /* thiz */, jstring deviceId) {
+    const char* device_id = env->GetStringUTFChars(deviceId, nullptr);
+    char* result = open_face_set_device_id(device_id);
+    env->ReleaseStringUTFChars(deviceId, device_id);
+    return rustStringToJString(env, result);
+}
+
 // searchIdentity(embeddingJson: String): String
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_OpenFace_OpenFaceModule_nativeSearchIdentity(
@@ -117,6 +135,41 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_OpenFace_OpenFaceModule_nativeGetSyncStatus(
     JNIEnv* env, jobject /* thiz */) {
     char* result = open_face_get_sync_status();
+    return rustStringToJString(env, result);
+}
+
+// exportLedgerBase64(): String
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_OpenFace_OpenFaceModule_nativeExportLedgerBase64(
+    JNIEnv* env, jobject /* thiz */) {
+    char* result = open_face_export_ledger_base64();
+    return rustStringToJString(env, result);
+}
+
+// verifyAndPurge(recordIdsJson: String, purgeTokenHex: String, serverPublicKeyHex: String): String
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_OpenFace_OpenFaceModule_nativeVerifyAndPurge(
+    JNIEnv* env, jobject /* thiz */,
+    jstring recordIdsJson, jstring purgeTokenHex, jstring serverPublicKeyHex) {
+    const char* record_ids = env->GetStringUTFChars(recordIdsJson, nullptr);
+    const char* purge_token = env->GetStringUTFChars(purgeTokenHex, nullptr);
+    const char* server_key = env->GetStringUTFChars(serverPublicKeyHex, nullptr);
+
+    char* result = open_face_verify_and_purge(record_ids, purge_token, server_key);
+
+    env->ReleaseStringUTFChars(recordIdsJson, record_ids);
+    env->ReleaseStringUTFChars(purgeTokenHex, purge_token);
+    env->ReleaseStringUTFChars(serverPublicKeyHex, server_key);
+    return rustStringToJString(env, result);
+}
+
+// setSyncStatus(status: String): String
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_OpenFace_OpenFaceModule_nativeSetSyncStatus(
+    JNIEnv* env, jobject /* thiz */, jstring status) {
+    const char* status_str = env->GetStringUTFChars(status, nullptr);
+    char* result = open_face_set_sync_status(status_str);
+    env->ReleaseStringUTFChars(status, status_str);
     return rustStringToJString(env, result);
 }
 

@@ -78,4 +78,17 @@ impl Ledger {
         File::create(&self.file_path)?; // Opens with O_TRUNC
         Ok(())
     }
+
+    /// Reads the raw ledger file bytes for sync export.
+    pub fn read_raw_bytes(&self) -> std::io::Result<Vec<u8>> {
+        let path = Path::new(&self.file_path);
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut file = File::open(path)?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        Ok(bytes)
+    }
 }

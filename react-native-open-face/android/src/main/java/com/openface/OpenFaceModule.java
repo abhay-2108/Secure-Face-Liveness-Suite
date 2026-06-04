@@ -1,6 +1,7 @@
 package com.OpenFace;
 
 import android.content.res.AssetManager;
+import android.provider.Settings;
 
 import androidx.annotation.NonNull;
 
@@ -15,9 +16,13 @@ import com.facebook.react.module.annotations.ReactModule;
  *
  * Method signatures match the TypeScript spec in NativeOpenFace.ts:
  *   initialize(configJson) → Promise<string>
+ *   setDeviceId(deviceId) → Promise<string>
  *   searchIdentity(embeddingJson) → Promise<string>
  *   enrollIdentity(label, embeddingJson) → Promise<string>
  *   getSyncStatus() → Promise<string>
+ *   exportLedgerBase64() → Promise<string>
+ *   verifyAndPurge(recordIdsJson, purgeTokenHex, serverPublicKeyHex) → Promise<string>
+ *   setSyncStatus(status) → Promise<string>
  *   getMetrics() → Promise<string>
  *   forcePurge() → Promise<string>
  *   triggerSync() → Promise<void>
@@ -44,9 +49,13 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     // --- JNI native method declarations ---
     private native int    nativeInit();
     private native String nativeInitialize(String configJson);
+    private native String nativeSetDeviceId(String deviceId);
     private native String nativeSearchIdentity(String embeddingJson);
     private native String nativeEnrollIdentity(String label, String embeddingJson);
     private native String nativeGetSyncStatus();
+    private native String nativeExportLedgerBase64();
+    private native String nativeVerifyAndPurge(String recordIdsJson, String purgeTokenHex, String serverPublicKeyHex);
+    private native String nativeSetSyncStatus(String status);
     private native String nativeGetMetrics();
     private native String nativeForcePurge();
     private native void   nativeTriggerSync();
@@ -71,11 +80,11 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
                 AssetManager assetManager = getReactApplicationContext().getAssets();
                 int result = nativeLoadModels(assetManager);
                 if (result == 1) {
-                    promise.resolve(true);
+                    promise.resolve("{\"success\":true}");
                 } else {
                     // Models not found in assets — engine still works in heuristic mode
                     android.util.Log.w(NAME, "ONNX models not found in assets. Falling back to heuristic mode.");
-                    promise.resolve(true);
+                    promise.resolve("{\"success\":true}");
                 }
             } catch (Exception e) {
                 promise.reject("MODEL_LOAD_ERROR", e);
@@ -90,6 +99,14 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void initialize(String configJson, Promise promise) {
         try {
+            String androidId = Settings.Secure.getString(
+                getReactApplicationContext().getContentResolver(),
+                Settings.Secure.ANDROID_ID
+            );
+            if (androidId != null && !androidId.isEmpty()) {
+                nativeSetDeviceId(androidId);
+            }
+
             String result = nativeInitialize(configJson);
 
             // Attempt zero-copy model loading from APK assets
@@ -105,6 +122,19 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
             promise.resolve(result);
         } catch (Exception e) {
             promise.reject("INIT_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Explicitly set the device ID (if you want to override the Android ID).
+     */
+    @ReactMethod
+    public void setDeviceId(String deviceId, Promise promise) {
+        try {
+            String result = nativeSetDeviceId(deviceId);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("DEVICE_ID_ERROR", e.getMessage());
         }
     }
 
@@ -144,6 +174,45 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
             promise.resolve(result);
         } catch (Exception e) {
             promise.reject("SYNC_STATUS_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Export the encrypted ledger as base64 for sync upload.
+     */
+    @ReactMethod
+    public void exportLedgerBase64(Promise promise) {
+        try {
+            String result = nativeExportLedgerBase64();
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("LEDGER_EXPORT_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Verify purge token and truncate the ledger.
+     */
+    @ReactMethod
+    public void verifyAndPurge(String recordIdsJson, String purgeTokenHex, String serverPublicKeyHex, Promise promise) {
+        try {
+            String result = nativeVerifyAndPurge(recordIdsJson, purgeTokenHex, serverPublicKeyHex);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("PURGE_VERIFY_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Set sync status label for UI telemetry.
+     */
+    @ReactMethod
+    public void setSyncStatus(String status, Promise promise) {
+        try {
+            String result = nativeSetSyncStatus(status);
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject("SYNC_STATUS_SET_ERROR", e.getMessage());
         }
     }
 
@@ -206,6 +275,14 @@ public class OpenFaceModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void initializeEngine(Promise promise) {
         try {
+            String androidId = Settings.Secure.getString(
+                getReactApplicationContext().getContentResolver(),
+                Settings.Secure.ANDROID_ID
+            );
+            if (androidId != null && !androidId.isEmpty()) {
+                nativeSetDeviceId(androidId);
+            }
+
             int result = nativeInit();
             if (result == 1) {
                 // Also try loading models

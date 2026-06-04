@@ -16,6 +16,7 @@ mod preprocessing;
 mod sync;
 mod thermal_governor;
 
+use base64::{engine::general_purpose, Engine as _};
 use hnsw_index::HNSWGraph;
 use lazy_static::lazy_static;
 use ledger::Ledger;
@@ -30,8 +31,8 @@ use tract_onnx::prelude::*;
 use jni::sys::jobject;
 #[cfg(target_os = "android")]
 use ndk_sys::{
-    AAssetManager, AAssetManager_fromJava, AAssetManager_open, AAsset_getBuffer, AAsset_getLength,
-    AASSET_MODE_BUFFER,
+    AAssetManager, AAssetManager_fromJava, AAssetManager_open, AAsset_close, AAsset_getBuffer,
+    AAsset_getLength, AAsset_read, AASSET_MODE_BUFFER,
 };
 
 // Type alias for our loaded Tract model
@@ -44,6 +45,7 @@ struct EngineConfig {
     model_path: String,
     hnsw_index_path: String,
     ledger_db_path: String,
+    device_id: String,
     clahe_clip_limit: f64,
     inference_threads: usize,
     match_threshold: f64,
@@ -58,6 +60,7 @@ impl Default for EngineConfig {
             model_path: String::new(),
             hnsw_index_path: String::new(),
             ledger_db_path: String::from("/data/data/com.aegisapp/files/ledger.bin"),
+            device_id: String::new(),
             clahe_clip_limit: 2.0,
             inference_threads: 2,
             match_threshold: 0.68,
@@ -72,11 +75,12 @@ lazy_static! {
     static ref GOVERNOR: Mutex<ThermalGovernor> = Mutex::new(ThermalGovernor::new(ThermalConfig::default()));
 
     // Globally cache our loaded Tract models
+    static ref DETECTOR_NET: Mutex<Option<TractModel>> = Mutex::new(None);
     static ref GHOST_NET: Mutex<Option<TractModel>> = Mutex::new(None);
     static ref LIVENESS_NET: Mutex<Option<TractModel>> = Mutex::new(None);
 
     // HNSW vector database for identity search
-    static ref HNSW: Mutex<HNSWGraph> = Mutex::new(HNSWGraph::new(100_000, 16, 200));
+    static ref HNSW: Mutex<HNSWGraph> = Mutex::new(HNSWGraph::new(100_000, 16, 200, 64));
 
     // Encrypted ledger for offline-first event storage
     static ref LEDGER: Mutex<Option<Ledger>> = Mutex::new(None);
@@ -105,6 +109,16 @@ struct EngineMetricsInternal {
     index_size: usize,
 }
 
+#[derive(Default, Clone)]
+struct FaceDetectionResult {
+    face_detected: bool,
+    confidence: f32,
+    xmin: f32,
+    ymin: f32,
+    xmax: f32,
+    ymax: f32,
+}
+
 // ============================================================================
 // FFI: Initialize the engine with a JSON config from JS
 // ============================================================================
@@ -130,8 +144,26 @@ pub extern "C" fn open_face_initialize(
     let mut cfg = CONFIG.lock().unwrap();
     cfg.arena_size = parsed["arena_size"].as_u64().unwrap_or(40) as usize;
     cfg.model_path = parsed["model_path"].as_str().unwrap_or("").to_string();
-    cfg.hnsw_index_path = parsed["hnsw_index_path"].as_str().unwrap_or("").to_string();
-    cfg.ledger_db_path = parsed["ledger_db_path"].as_str().unwrap_or("").to_string();
+
+    let hnsw_path = parsed["hnsw_index_path"].as_str().unwrap_or("");
+    cfg.hnsw_index_path = if hnsw_path.is_empty() {
+        "/data/data/com.aegisapp/files/hnsw_index.bin".to_string()
+    } else {
+        hnsw_path.to_string()
+    };
+
+    let ledger_path = parsed["ledger_db_path"].as_str().unwrap_or("");
+    cfg.ledger_db_path = if ledger_path.is_empty() {
+        "/data/data/com.aegisapp/files/ledger.bin".to_string()
+    } else {
+        ledger_path.to_string()
+    };
+
+    let device_id = parsed["device_id"].as_str().unwrap_or("");
+    if !device_id.is_empty() {
+        crypto::set_hardware_fingerprint_from_id(device_id);
+        cfg.device_id = device_id.to_string();
+    }
     cfg.clahe_clip_limit = parsed["clahe_clip_limit"].as_f64().unwrap_or(2.0);
     cfg.inference_threads = parsed["inference_threads"].as_u64().unwrap_or(2) as usize;
     cfg.match_threshold = parsed["match_threshold"].as_f64().unwrap_or(0.68);
@@ -165,11 +197,37 @@ pub extern "C" fn open_face_initialize(
         } else {
             "synced".to_string()
         };
-        m.index_size = HNSW.lock().unwrap().nodes.len();
+        m.index_size = HNSW.lock().unwrap().len();
     }
 
     // Mark initialized
     *INITIALIZED.lock().unwrap() = true;
+
+    make_json_success()
+}
+
+// ============================================================================
+// FFI: Inject a device identifier for hardware-bound encryption
+// ============================================================================
+#[no_mangle]
+pub extern "C" fn open_face_set_device_id(
+    device_id: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_char {
+    let id_str = unsafe {
+        if device_id.is_null() {
+            return make_json_error("Null device id pointer");
+        }
+        std::ffi::CStr::from_ptr(device_id)
+            .to_string_lossy()
+            .to_string()
+    };
+
+    if id_str.trim().is_empty() {
+        return make_json_error("Empty device id");
+    }
+
+    crypto::set_hardware_fingerprint_from_id(&id_str);
+    CONFIG.lock().unwrap().device_id = id_str;
 
     make_json_success()
 }
@@ -321,7 +379,7 @@ pub extern "C" fn open_face_enroll_identity(
                 let _ = ledger.append_event(&event);
             }
 
-            METRICS.lock().unwrap().index_size = hnsw.nodes.len();
+            METRICS.lock().unwrap().index_size = hnsw.len();
 
             let json = format!(r#"{{"success":true,"identityId":"{}"}}"#, identity_id);
             make_c_string(&json)
@@ -346,18 +404,38 @@ pub extern "C" fn open_face_get_sync_status() -> *mut std::os::raw::c_char {
         (0, 0)
     };
 
-    let cfg = CONFIG.lock().unwrap();
-    let mode = if cfg.offline_mode {
-        "offline"
-    } else {
-        "synced"
-    };
+    let mode = METRICS.lock().unwrap().sync_status.clone();
+    let is_connected = mode == "synced" || mode == "syncing";
 
     let json = format!(
         r#"{{"pendingCount":{},"syncedCount":0,"totalCount":{},"isConnected":{},"lastSyncTimestamp":null,"mode":"{}"}}"#,
-        pending, total, !cfg.offline_mode, mode
+        pending, total, is_connected, mode
     );
     make_c_string(&json)
+}
+
+// ============================================================================
+// FFI: Export encrypted ledger as base64 for JS sync upload
+// ============================================================================
+#[no_mangle]
+pub extern "C" fn open_face_export_ledger_base64() -> *mut std::os::raw::c_char {
+    let ledger_guard = LEDGER.lock().unwrap();
+    if let Some(ref ledger) = *ledger_guard {
+        match ledger.read_raw_bytes() {
+            Ok(bytes) => {
+                let encoded = general_purpose::STANDARD.encode(&bytes);
+                let json = format!(
+                    r#"{{"success":true,"base64":"{}","byteCount":{}}}"#,
+                    encoded,
+                    bytes.len()
+                );
+                make_c_string(&json)
+            }
+            Err(e) => make_json_error(&format!("Ledger read error: {}", e)),
+        }
+    } else {
+        make_c_string(r#"{"success":true,"base64":"","byteCount":0}"#)
+    }
 }
 
 // ============================================================================
@@ -406,15 +484,125 @@ pub extern "C" fn open_face_force_purge() -> *mut std::os::raw::c_char {
 }
 
 // ============================================================================
+// FFI: Verify purge token and truncate ledger
+// ============================================================================
+#[no_mangle]
+pub extern "C" fn open_face_verify_and_purge(
+    record_ids_json: *const std::os::raw::c_char,
+    purge_token_hex: *const std::os::raw::c_char,
+    server_public_key_hex: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_char {
+    let record_ids_str = unsafe {
+        if record_ids_json.is_null() {
+            return make_json_error("Null record id list");
+        }
+        std::ffi::CStr::from_ptr(record_ids_json)
+            .to_string_lossy()
+            .to_string()
+    };
+    let purge_token = unsafe {
+        if purge_token_hex.is_null() {
+            return make_json_error("Null purge token");
+        }
+        std::ffi::CStr::from_ptr(purge_token_hex)
+            .to_string_lossy()
+            .to_string()
+    };
+    let server_key = unsafe {
+        if server_public_key_hex.is_null() {
+            return make_json_error("Null server key");
+        }
+        std::ffi::CStr::from_ptr(server_public_key_hex)
+            .to_string_lossy()
+            .to_string()
+    };
+
+    let record_ids: Vec<String> = match serde_json::from_str(&record_ids_str) {
+        Ok(v) => v,
+        Err(e) => return make_json_error(&format!("Record id parse error: {}", e)),
+    };
+
+    let ledger_guard = LEDGER.lock().unwrap();
+    let ledger = match *ledger_guard {
+        Some(ref ledger) => ledger,
+        None => return make_json_error("Ledger not initialized"),
+    };
+
+    let concat_ids = record_ids.join("");
+    let server_pub_key = match hex::decode(server_key) {
+        Ok(k) => k,
+        Err(_) => return make_json_error("Server public key decode failed"),
+    };
+    let signature_bytes = match hex::decode(purge_token) {
+        Ok(s) => s,
+        Err(_) => return make_json_error("Purge token decode failed"),
+    };
+
+    let is_valid = crypto::verify_purge_token(
+        &server_pub_key,
+        concat_ids.as_bytes(),
+        &signature_bytes,
+    );
+
+    if is_valid {
+        let count = ledger.read_all_events().unwrap_or_default().len();
+        match ledger.truncate_purge() {
+            Ok(_) => {
+                let json = format!(
+                    r#"{{"success":true,"purgedCount":{},"remainingCount":0}}"#,
+                    count
+                );
+                make_c_string(&json)
+            }
+            Err(e) => make_json_error(&format!("Purge failed: {}", e)),
+        }
+    } else {
+        make_json_error("Invalid purge token")
+    }
+}
+
+// ============================================================================
+// FFI: Set sync status from JS layer
+// ============================================================================
+#[no_mangle]
+pub extern "C" fn open_face_set_sync_status(
+    status: *const std::os::raw::c_char,
+) -> *mut std::os::raw::c_char {
+    let status_str = unsafe {
+        if status.is_null() {
+            return make_json_error("Null sync status");
+        }
+        std::ffi::CStr::from_ptr(status)
+            .to_string_lossy()
+            .to_string()
+    };
+
+    match status_str.as_str() {
+        "offline" | "syncing" | "synced" | "error" => {
+            METRICS.lock().unwrap().sync_status = status_str;
+            make_json_success()
+        }
+        _ => make_json_error("Invalid sync status"),
+    }
+}
+
+// ============================================================================
 // FFI: Trigger sync (no-op in offline mode, signals JS layer to handle HTTP)
 // ============================================================================
 #[no_mangle]
 pub extern "C" fn open_face_trigger_sync() {
-    let cfg = CONFIG.lock().unwrap();
-    if cfg.offline_mode {
-        log::info!("Sync trigger ignored — offline mode is active");
+    let ledger_guard = LEDGER.lock().unwrap();
+    let pending = if let Some(ref ledger) = *ledger_guard {
+        ledger.read_all_events().unwrap_or_default().len()
     } else {
-        let mut m = METRICS.lock().unwrap();
+        0
+    };
+
+    let mut m = METRICS.lock().unwrap();
+    if pending == 0 {
+        m.sync_status = "synced".to_string();
+        log::info!("Sync trigger skipped — no pending events");
+    } else {
         m.sync_status = "syncing".to_string();
         log::info!("Sync triggered — JS layer should execute HTTP sync");
     }
@@ -426,6 +614,7 @@ pub extern "C" fn open_face_trigger_sync() {
 #[no_mangle]
 pub extern "C" fn open_face_shutdown() {
     *INITIALIZED.lock().unwrap() = false;
+    *DETECTOR_NET.lock().unwrap() = None;
     *GHOST_NET.lock().unwrap() = None;
     *LIVENESS_NET.lock().unwrap() = None;
     *LEDGER.lock().unwrap() = None;
@@ -458,8 +647,24 @@ pub extern "C" fn open_face_load_model_zero_copy(
 
             let length = AAsset_getLength(asset);
             let buffer = AAsset_getBuffer(asset);
+            let mut owned_data: Option<Vec<u8>> = None;
 
-            let slice = std::slice::from_raw_parts(buffer as *const u8, length as usize);
+            let slice = if buffer.is_null() {
+                log::warn!("Asset buffer is null, falling back to stream read: {}", filename);
+                let len = length as usize;
+                let mut data = vec![0u8; len];
+                let read_bytes = AAsset_read(asset, data.as_mut_ptr() as *mut _, len as _);
+                if read_bytes <= 0 {
+                    log::error!("Failed to stream asset: {}", filename);
+                    AAsset_close(asset);
+                    return None;
+                }
+                data.truncate(read_bytes as usize);
+                owned_data = Some(data);
+                owned_data.as_ref().unwrap().as_slice()
+            } else {
+                unsafe { std::slice::from_raw_parts(buffer as *const u8, length as usize) }
+            };
 
             let mut cursor = std::io::Cursor::new(slice);
             let model = tract_onnx::onnx()
@@ -470,8 +675,13 @@ pub extern "C" fn open_face_load_model_zero_copy(
                 .into_runnable()
                 .ok()?;
 
+            AAsset_close(asset);
+
             Some(model)
         };
+
+        let mut detector_guard = DETECTOR_NET.lock().unwrap();
+        *detector_guard = load_model("linzaer_detector_int8.onnx");
 
         let mut ghost_guard = GHOST_NET.lock().unwrap();
         *ghost_guard = load_model("ghostfacenet_s_int8.onnx");
@@ -479,9 +689,9 @@ pub extern "C" fn open_face_load_model_zero_copy(
         let mut live_guard = LIVENESS_NET.lock().unwrap();
         *live_guard = load_model("mini_fas_net_int8.onnx");
 
-        if ghost_guard.is_some() && live_guard.is_some() {
-            // Update model size metric
-            METRICS.lock().unwrap().model_size_mb = 6.6;
+        if detector_guard.is_some() && ghost_guard.is_some() && live_guard.is_some() {
+            // Update model size metric (detector + liveness + recognizer)
+            METRICS.lock().unwrap().model_size_mb = 6.7;
             log::info!("Zero-Copy ONNX models loaded successfully via AAssetManager!");
             1
         } else {
@@ -536,22 +746,111 @@ pub unsafe extern "C" fn open_face_process_frame(
     }
 
     let total_start = Instant::now();
-    let size = (width * height) as usize;
-    let y_slice = std::slice::from_raw_parts_mut(y_ptr, size);
+
+    if width <= 0 || height <= 0 {
+        return make_c_string(r#"{"faceDetected":false,"error":"Invalid frame dimensions"}"#);
+    }
+
+    let width_u = width as usize;
+    let height_u = height as usize;
+    let stride_u = if stride <= 0 {
+        width_u
+    } else {
+        stride as usize
+    };
+
+    if stride_u < width_u {
+        return make_c_string(r#"{"faceDetected":false,"error":"Invalid frame stride"}"#);
+    }
+
+    let arena_guard = ARENA.lock().unwrap();
+    arena_guard.reset();
+    let size = width_u * height_u;
+    let y_slice = match arena_guard.alloc(size) {
+        Ok(buf) => buf,
+        Err(e) => {
+            let json = format!(
+                r#"{{"faceDetected":false,"error":"Arena allocation failed: {}"}}"#,
+                e
+            );
+            return make_c_string(&json);
+        }
+    };
+    copy_y_plane_with_stride(y_ptr, y_slice, width_u, height_u, stride_u);
 
     // 1. Preprocessing (CLAHE)
     let preprocess_start = Instant::now();
     let cfg = CONFIG.lock().unwrap();
     let clahe = Clahe::new(cfg.clahe_clip_limit as f32, 8, 8);
     drop(cfg);
-    clahe.apply_in_place(y_slice, width as usize, height as usize);
+    clahe.apply_in_place(y_slice, width_u, height_u);
     let preprocess_ms = preprocess_start.elapsed().as_secs_f64() * 1000.0;
 
-    // 2. Liveness Detection (Consolidated Zero-ML suite)
+    // 2. Face Detection
+    let detection_start = Instant::now();
+    let (face_result, detector_loaded) = {
+        let detector_guard = DETECTOR_NET.lock().unwrap();
+        let loaded = detector_guard.is_some();
+        let result = if let Some(ref model) = *detector_guard {
+            run_detector(model, y_slice, width_u, height_u)
+        } else {
+            FaceDetectionResult {
+                face_detected: true,
+                confidence: 0.0,
+                xmin: 0.25,
+                ymin: 0.25,
+                xmax: 0.75,
+                ymax: 0.75,
+            }
+        };
+        (result, loaded)
+    };
+    let detection_ms = detection_start.elapsed().as_secs_f64() * 1000.0;
+
+    if detector_loaded && !face_result.face_detected {
+        let total_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+        let mut m = METRICS.lock().unwrap();
+        m.preprocess_latency_ms = preprocess_ms;
+        m.detection_latency_ms = detection_ms;
+        m.liveness_latency_ms = 0.0;
+        m.recognition_latency_ms = 0.0;
+        m.hnsw_latency_ms = 0.0;
+        m.inference_latency_ms = total_ms;
+
+        let json = format!(
+            r#"{{"faceDetected":false,"boundingBox":null,"liveness":null,"embedding":[],"match":null,"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"detectionLatencyMs":{:.2},"livenessLatencyMs":0.0,"recognitionLatencyMs":0.0,"hnswLatencyMs":0.0,"inferenceLatencyMs":{:.2}}},"error":"No face detected"}}"#,
+            total_ms,
+            preprocess_ms,
+            detection_ms,
+            total_ms
+        );
+        return make_c_string(&json);
+    }
+
+    let face_detected = if detector_loaded {
+        face_result.face_detected
+    } else {
+        true
+    };
+
+    let bounding_box_json = if detector_loaded && face_result.face_detected {
+        format!(
+            r#"{{"yMin":{:.4},"xMin":{:.4},"yMax":{:.4},"xMax":{:.4},"confidence":{:.4}}}"#,
+            face_result.ymin,
+            face_result.xmin,
+            face_result.ymax,
+            face_result.xmax,
+            face_result.confidence
+        )
+    } else {
+        "null".to_string()
+    };
+
+    // 3. Liveness Detection (Consolidated Zero-ML suite)
     let liveness_start = Instant::now();
 
     // Tier 1: Passive Laplacian texture (Fast Fail ~0.1ms)
-    let variance = liveness::calculate_laplacian_variance(y_slice, width as usize, height as usize);
+    let variance = liveness::calculate_laplacian_variance(y_slice, width_u, height_u);
     let mut texture_passed = variance >= 50.0;
 
     let mut jitter_passed = false;
@@ -564,7 +863,7 @@ pub unsafe extern "C" fn open_face_process_frame(
     // Laplacian textures or disrupts optical flow. We must guarantee the flash is processed.
     if flash_state > 0 {
         let (f_pass, f_score) =
-            liveness::process_screen_flash(y_slice, width as usize, height as usize, flash_state);
+            liveness::process_screen_flash(y_slice, width_u, height_u, flash_state);
         flash_passed = f_pass;
         flash_score = f_score;
         // Temporarily override passive checks so we don't abort the active sequence
@@ -574,7 +873,7 @@ pub unsafe extern "C" fn open_face_process_frame(
     } else if texture_passed {
         // Tier 2: Sparse Lucas-Kanade Jitter tracking (Only runs if Tier 1 passes)
         let (j_pass, j_score) =
-            liveness::track_jitter_optical_flow(y_slice, width as usize, height as usize);
+            liveness::track_jitter_optical_flow(y_slice, width_u, height_u);
         jitter_passed = j_pass;
         jitter_score = j_score;
 
@@ -586,7 +885,7 @@ pub unsafe extern "C" fn open_face_process_frame(
             } else {
                 // FRONT CAMERA MODE: Tier 3: Retrieve cached flash reflection analysis (or 0.0 if not run)
                 let (f_pass, f_score) =
-                    liveness::process_screen_flash(y_slice, width as usize, height as usize, 0);
+                    liveness::process_screen_flash(y_slice, width_u, height_u, 0);
                 flash_passed = f_pass;
                 flash_score = f_score;
             }
@@ -610,59 +909,50 @@ pub unsafe extern "C" fn open_face_process_frame(
     // If flash sequence is in-progress (state == 1), we don't declare passed/failed yet
     let liveness_passed = is_live && liveness_score >= liveness_threshold && flash_state != 1;
 
-    // 4. HNSW Search (only if liveness passed) — uses dummy embedding for now
-    let (match_json, hnsw_ms) = if liveness_passed {
-        let search_start = Instant::now();
-        let mut embedding = [0.0f32; 128];
+    // 4. Embedding Extraction — runs when face is detected
+    //    HNSW Search — only runs when liveness has passed (for authentication)
+    let recognition_start = Instant::now();
+    let mut embedding = [0.0f32; 128];
+    let mut extracted_valid = false;
 
-        // Execute GhostFaceNet Identity Extraction
-        if let Some(ghost_model) = GHOST_NET.lock().unwrap().as_ref() {
-            let dest_w = 112;
-            let dest_h = 112;
-            let mut input_data = vec![0.0f32; 3 * dest_w * dest_h];
-
-            // Extract center crop (50% of the screen) from the Grayscale Y-plane
-            let cx = width as usize / 2;
-            let cy = height as usize / 2;
-            let crop_size = (width as usize).min(height as usize) / 2;
-            let half = crop_size / 2;
-
-            let mut idx = 0;
-            for _c in 0..3 {
-                // Duplicate Y to RGB
-                for dy in 0..dest_h {
-                    for dx in 0..dest_w {
-                        let src_x = cx - half + (dx * crop_size) / dest_w;
-                        let src_y = cy - half + (dy * crop_size) / dest_h;
-                        // Clamp
-                        let clamp_x = src_x.min(width as usize - 1);
-                        let clamp_y = src_y.min(height as usize - 1);
-
-                        let val = y_slice[clamp_y * (width as usize) + clamp_x] as f32;
-                        input_data[idx] = (val - 127.5) / 128.0; // Normalize
-                        idx += 1;
-                    }
-                }
+    if let Some(ghost_model) = GHOST_NET.lock().unwrap().as_ref() {
+        let face_for_embedding = if detector_loaded {
+            face_result.clone()
+        } else {
+            FaceDetectionResult {
+                face_detected: true,
+                confidence: 0.0,
+                xmin: 0.25,
+                ymin: 0.25,
+                xmax: 0.75,
+                ymax: 0.75,
             }
+        };
 
-            if let Ok(input_tensor) =
-                tract_ndarray::Array4::from_shape_vec((1, 3, dest_h, dest_w), input_data)
-            {
-                let tensor_val: Tensor = input_tensor.into();
-                if let Ok(outputs) = ghost_model.run(tvec![tensor_val.into()]) {
-                    if let Some(out) = outputs.first() {
-                        if let Ok(out_view) = out.to_array_view::<f32>() {
-                            if out_view.shape().len() >= 2 && out_view.shape()[1] >= 128 {
-                                for i in 0..128 {
-                                    embedding[i] = out_view[[0, i]];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if let Some(embed) = extract_embedding_from_gray(
+            ghost_model,
+            y_slice,
+            width_u,
+            height_u,
+            &face_for_embedding,
+        ) {
+            embedding = embed;
+            extracted_valid = true;
         }
+    }
 
+    let recognition_ms = recognition_start.elapsed().as_secs_f64() * 1000.0;
+
+    let embedding_json_str = if extracted_valid {
+        let formatted: Vec<String> = embedding.iter().map(|v| format!("{:.6}", v)).collect();
+        format!("[{}]", formatted.join(","))
+    } else {
+        "[]".to_string()
+    };
+
+    // HNSW Search: only when liveness has passed (authentication flow)
+    let search_start = Instant::now();
+    let (match_json, hnsw_ms) = if liveness_passed && extracted_valid {
         let hnsw = HNSW.lock().unwrap();
         let results = hnsw.search(&embedding, 1);
         let elapsed = search_start.elapsed().as_secs_f64() * 1000.0;
@@ -704,14 +994,18 @@ pub unsafe extern "C" fn open_face_process_frame(
     {
         let mut m = METRICS.lock().unwrap();
         m.preprocess_latency_ms = preprocess_ms;
+        m.detection_latency_ms = detection_ms;
         m.liveness_latency_ms = liveness_ms;
+        m.recognition_latency_ms = recognition_ms;
         m.hnsw_latency_ms = hnsw_ms;
         m.inference_latency_ms = total_ms;
     }
 
     // Build the full FrameResult JSON
     let json_str = format!(
-        r#"{{"faceDetected":true,"boundingBox":null,"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":{},"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{},"reflectionPassed":{},"jitterPassed":{}}},"embedding":[]{},"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"livenessLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
+        r#"{{"faceDetected":{},"boundingBox":{},"liveness":{{"isReal":{},"silentScore":{:.4},"opticalFlowPassed":{},"blinkDetected":false,"status":"{}","currentChallenge":"{}","challengeProgress":{},"reflectionPassed":{},"jitterPassed":{}}},"embedding":{}{} ,"totalLatencyMs":{:.2},"metrics":{{"preprocessLatencyMs":{:.2},"detectionLatencyMs":{:.2},"livenessLatencyMs":{:.2},"recognitionLatencyMs":{:.2},"hnswLatencyMs":{:.2},"inferenceLatencyMs":{:.2}}}}}"#,
+        face_detected,
+        bounding_box_json,
         is_live,
         liveness_score,
         jitter_passed,
@@ -734,10 +1028,13 @@ pub unsafe extern "C" fn open_face_process_frame(
         if liveness_passed { 1.0 } else { liveness_score },
         flash_passed,
         jitter_passed,
+        embedding_json_str,
         match_json,
         total_ms,
         preprocess_ms,
+        detection_ms,
         liveness_ms,
+        recognition_ms,
         hnsw_ms,
         total_ms,
     );
@@ -759,6 +1056,275 @@ pub unsafe extern "C" fn open_face_free_string(s: *mut std::os::raw::c_char) {
 // ============================================================================
 // Helper functions
 // ============================================================================
+fn copy_y_plane_with_stride(
+    src_ptr: *const u8,
+    dst: &mut [u8],
+    width: usize,
+    height: usize,
+    stride: usize,
+) {
+    if stride < width || dst.len() < width * height {
+        return;
+    }
+
+    let src_len = stride * height;
+    let src = unsafe { std::slice::from_raw_parts(src_ptr, src_len) };
+
+    for row in 0..height {
+        let src_start = row * stride;
+        let dst_start = row * width;
+        dst[dst_start..dst_start + width]
+            .copy_from_slice(&src[src_start..src_start + width]);
+    }
+}
+
+fn run_detector(
+    model: &TractModel,
+    gray: &[u8],
+    width: usize,
+    height: usize,
+) -> FaceDetectionResult {
+    let dest_h = 240;
+    let dest_w = 320;
+    let mut input_data = vec![0.0f32; 3 * dest_h * dest_w];
+
+    bilinear_resize_normalize_gray(
+        gray,
+        width,
+        height,
+        width,
+        &mut input_data,
+        dest_w,
+        dest_h,
+        127.5,
+        128.0,
+    );
+
+    let input_tensor: Tensor = match tract_ndarray::Array4::from_shape_vec(
+        (1, 3, dest_h, dest_w),
+        input_data,
+    ) {
+        Ok(arr) => arr.into(),
+        Err(_) => return FaceDetectionResult::default(),
+    };
+
+    let outputs = match model.run(tvec![input_tensor.into()]) {
+        Ok(o) => o,
+        Err(_) => return FaceDetectionResult::default(),
+    };
+
+    if outputs.len() < 2 {
+        return FaceDetectionResult::default();
+    }
+
+    let boxes = match outputs[0].to_array_view::<f32>() {
+        Ok(b) => b,
+        Err(_) => return FaceDetectionResult::default(),
+    };
+    let scores = match outputs[1].to_array_view::<f32>() {
+        Ok(s) => s,
+        Err(_) => return FaceDetectionResult::default(),
+    };
+
+    let num_anchors = scores.shape().get(1).copied().unwrap_or(0);
+    let mut max_score: f32 = 0.0;
+    let mut max_idx: Option<usize> = None;
+
+    for i in 0..num_anchors {
+        let face_score = scores[[0, i, 1]];
+        if face_score > max_score {
+            max_score = face_score;
+            max_idx = Some(i);
+        }
+    }
+
+    let mut result = FaceDetectionResult::default();
+    if let Some(idx) = max_idx {
+        if max_score > 0.75 {
+            result.face_detected = true;
+            result.confidence = max_score;
+            result.ymin = boxes[[0, idx, 0]];
+            result.xmin = boxes[[0, idx, 1]];
+            result.ymax = boxes[[0, idx, 2]];
+            result.xmax = boxes[[0, idx, 3]];
+        }
+    }
+
+    result
+}
+
+fn extract_embedding_from_gray(
+    model: &TractModel,
+    gray: &[u8],
+    width: usize,
+    height: usize,
+    face: &FaceDetectionResult,
+) -> Option<[f32; 128]> {
+    let dest_w = 112;
+    let dest_h = 112;
+
+    let crop_x = (face.xmin * width as f32).max(0.0) as usize;
+    let crop_y = (face.ymin * height as f32).max(0.0) as usize;
+    let crop_w = ((face.xmax - face.xmin) * width as f32)
+        .min((width - crop_x) as f32)
+        .max(1.0) as usize;
+    let crop_h = ((face.ymax - face.ymin) * height as f32)
+        .min((height - crop_y) as f32)
+        .max(1.0) as usize;
+
+    if crop_w <= 10 || crop_h <= 10 {
+        return None;
+    }
+
+    let mut input_data = vec![0.0f32; 3 * dest_w * dest_h];
+    bilinear_resize_normalize_gray_crop(
+        gray,
+        width,
+        height,
+        crop_x,
+        crop_y,
+        crop_w,
+        crop_h,
+        &mut input_data,
+        dest_w,
+        dest_h,
+        127.5,
+        128.0,
+    );
+
+    let input_tensor: Tensor = match tract_ndarray::Array4::from_shape_vec(
+        (1, 3, dest_h, dest_w),
+        input_data,
+    ) {
+        Ok(arr) => arr.into(),
+        Err(_) => return None,
+    };
+
+    let outputs = match model.run(tvec![input_tensor.into()]) {
+        Ok(o) => o,
+        Err(_) => return None,
+    };
+
+    let out = outputs.first()?;
+    let out_view = out.to_array_view::<f32>().ok()?;
+
+    if out_view.shape().len() < 2 || out_view.shape()[1] < 128 {
+        return None;
+    }
+
+    let mut embedding = [0.0f32; 128];
+    for i in 0..128 {
+        embedding[i] = out_view[[0, i]];
+    }
+
+    Some(embedding)
+}
+
+fn bilinear_resize_normalize_gray(
+    src: &[u8],
+    src_w: usize,
+    src_h: usize,
+    src_stride: usize,
+    dest: &mut [f32],
+    dest_w: usize,
+    dest_h: usize,
+    mean: f32,
+    std_dev: f32,
+) {
+    let scale_x = src_w as f32 / dest_w as f32;
+    let scale_y = src_h as f32 / dest_h as f32;
+    let inv_std = 1.0 / std_dev;
+
+    let channel_stride = dest_h * dest_w;
+
+    for dy in 0..dest_h {
+        let sy_f = dy as f32 * scale_y;
+        let sy1 = (sy_f as usize).min(src_h.saturating_sub(1));
+        let sy2 = (sy1 + 1).min(src_h.saturating_sub(1));
+        let ya = sy_f - sy1 as f32;
+
+        for dx in 0..dest_w {
+            let sx_f = dx as f32 * scale_x;
+            let sx1 = (sx_f as usize).min(src_w.saturating_sub(1));
+            let sx2 = (sx1 + 1).min(src_w.saturating_sub(1));
+            let xa = sx_f - sx1 as f32;
+
+            let p11 = src.get(sy1 * src_stride + sx1).copied().unwrap_or(0) as f32;
+            let p12 = src.get(sy1 * src_stride + sx2).copied().unwrap_or(0) as f32;
+            let p21 = src.get(sy2 * src_stride + sx1).copied().unwrap_or(0) as f32;
+            let p22 = src.get(sy2 * src_stride + sx2).copied().unwrap_or(0) as f32;
+
+            let val = (1.0 - xa) * (1.0 - ya) * p11
+                + xa * (1.0 - ya) * p12
+                + (1.0 - xa) * ya * p21
+                + xa * ya * p22;
+
+            let normalized = (val - mean) * inv_std;
+
+            let pixel_idx = dy * dest_w + dx;
+            dest[pixel_idx] = normalized;
+            dest[channel_stride + pixel_idx] = normalized;
+            dest[2 * channel_stride + pixel_idx] = normalized;
+        }
+    }
+}
+
+fn bilinear_resize_normalize_gray_crop(
+    src: &[u8],
+    src_w: usize,
+    src_h: usize,
+    crop_x: usize,
+    crop_y: usize,
+    crop_w: usize,
+    crop_h: usize,
+    dest: &mut [f32],
+    dest_w: usize,
+    dest_h: usize,
+    mean: f32,
+    std_dev: f32,
+) {
+    let scale_x = crop_w as f32 / dest_w as f32;
+    let scale_y = crop_h as f32 / dest_h as f32;
+    let inv_std = 1.0 / std_dev;
+
+    let channel_stride = dest_h * dest_w;
+
+    for dy in 0..dest_h {
+        let sy_f = dy as f32 * scale_y;
+        let sy1 = (sy_f as usize).min(crop_h.saturating_sub(1));
+        let sy2 = (sy1 + 1).min(crop_h.saturating_sub(1));
+        let ya = sy_f - sy1 as f32;
+
+        for dx in 0..dest_w {
+            let sx_f = dx as f32 * scale_x;
+            let sx1 = (sx_f as usize).min(crop_w.saturating_sub(1));
+            let sx2 = (sx1 + 1).min(crop_w.saturating_sub(1));
+            let xa = sx_f - sx1 as f32;
+
+            let px1 = (crop_x + sx1).min(src_w.saturating_sub(1));
+            let px2 = (crop_x + sx2).min(src_w.saturating_sub(1));
+            let py1 = (crop_y + sy1).min(src_h.saturating_sub(1));
+            let py2 = (crop_y + sy2).min(src_h.saturating_sub(1));
+
+            let p11 = src.get(py1 * src_w + px1).copied().unwrap_or(0) as f32;
+            let p12 = src.get(py1 * src_w + px2).copied().unwrap_or(0) as f32;
+            let p21 = src.get(py2 * src_w + px1).copied().unwrap_or(0) as f32;
+            let p22 = src.get(py2 * src_w + px2).copied().unwrap_or(0) as f32;
+
+            let val = (1.0 - xa) * (1.0 - ya) * p11
+                + xa * (1.0 - ya) * p12
+                + (1.0 - xa) * ya * p21
+                + xa * ya * p22;
+
+            let normalized = (val - mean) * inv_std;
+            let pixel_idx = dy * dest_w + dx;
+            dest[pixel_idx] = normalized;
+            dest[channel_stride + pixel_idx] = normalized;
+            dest[2 * channel_stride + pixel_idx] = normalized;
+        }
+    }
+}
+
 fn make_c_string(s: &str) -> *mut std::os::raw::c_char {
     std::ffi::CString::new(s).unwrap().into_raw()
 }

@@ -48,17 +48,39 @@ Ensure your `android/local.properties` file contains the correct absolute path t
 OpenFace hooks seamlessly into `react-native-vision-camera`. The `useOpenFace` hook abstracts the entire complex Rust memory arena, threading, and JSI bridge into a simple, declarative React state.
 
 ```tsx
-import { useOpenFace } from 'react-native-open-face/aegis-app/src/hooks/useOpenFace';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useEffect } from 'react';
+import { OpenFace } from 'react-native-open-face';
+import { Camera, useCameraDevice, useFrameProcessor, VisionCameraProxy } from 'react-native-vision-camera';
+import { Worklets } from 'react-native-worklets-core';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function App() {
   const device = useCameraDevice('front');
   
-  // The hook handles the Zero-Copy JSI binding automatically
-  const { isReady, frameProcessor, livenessPrompt, livenessStatus } = useOpenFace();
+  useEffect(() => {
+    OpenFace.initialize({
+      arenaSize: 40,
+      modelPath: '',
+    });
+  }, []);
 
-  if (!device || !isReady) return <Text>Initializing OpenFace Edge Engine...</Text>;
+  const plugin = VisionCameraProxy.initFrameProcessorPlugin('processOpenFace', {});
+  const handleFrameResult = (resultStr: string) => {
+    // Parse the frame result JSON here
+  };
+  const handleFrameResultJS = Worklets.createRunOnJS(handleFrameResult);
+
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    if (plugin) {
+      const resultStr = plugin.call(frame, { flashState: 0 });
+      if (resultStr && typeof resultStr === 'string') {
+        handleFrameResultJS(resultStr);
+      }
+    }
+  }, [handleFrameResultJS]);
+
+  if (!device) return <Text>Initializing OpenFace Edge Engine...</Text>;
 
   return (
     <View style={styles.container}>
@@ -70,8 +92,7 @@ export default function App() {
         pixelFormat="yuv"
       />
       
-      {/* Declarative Feedback Loop */}
-      <Text style={styles.prompt}>{livenessPrompt}</Text>
+      {/* Render liveness prompts here */}
     </View>
   );
 }
@@ -100,6 +121,8 @@ OpenFace strictly enforces a 4-tier separation of concerns to maximize performan
 4. **Bare-Metal Rust Engine** - The mathematical core handling the O(1) Memory Arenas, AI Liveness Pipeline, HNSW Vector Database, Thermal CPU Governance, and Ed25519 Secure Offline Cryptography.
 
 For an incredibly deep technical dive into the algorithms, read our [ARCHITECTURE.md](../ARCHITECTURE.md) whitepaper in the main repository.
+
+For a full integration example with screens and navigation, see the `aegis-mobile/` app in this repository.
 
 ---
 

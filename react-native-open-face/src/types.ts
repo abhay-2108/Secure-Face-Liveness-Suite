@@ -12,8 +12,11 @@ export interface VisionConfig {
   /** Pre-allocated arena size in megabytes (default: 40MB) */
   arenaSize: number;
 
-  /** Absolute path to the directory containing .tflite model files */
+  /** Absolute path to the directory containing .onnx model files */
   modelPath: string;
+
+  /** Optional device identifier to derive hardware-bound keys */
+  deviceId?: string;
 
   /** Path to the HNSW index file, or where it should be created */
   hnswIndexPath?: string;
@@ -259,4 +262,24 @@ export interface PurgeResult {
 
   /** Number of records remaining */
   remainingCount: number;
+
+  /** Error message if purge failed */
+  error?: string;
+}
+
+/**
+ * Result of exporting the encrypted ledger for sync upload.
+ */
+export interface LedgerExportResult {
+  /** Whether export succeeded */
+  success: boolean;
+
+  /** Base64-encoded encrypted ledger content */
+  base64: string;
+
+  /** Raw byte count of the ledger file */
+  byteCount: number;
+
+  /** Error message if export failed */
+  error?: string;
 }

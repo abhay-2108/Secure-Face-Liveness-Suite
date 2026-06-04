@@ -57,6 +57,16 @@ dependencies {
 }
 
 task downloadHfModels(type: Exec) {
+    def assetsDir = file("$projectDir/src/main/assets")
+    def requiredModels = [
+        new File(assetsDir, "linzaer_detector_int8.onnx"),
+        new File(assetsDir, "ghostfacenet_s_int8.onnx"),
+        new File(assetsDir, "mini_fas_net_int8.onnx"),
+    ]
+
+    onlyIf {
+        requiredModels.any { !it.exists() }
+    }
     workingDir "$projectDir"
     commandLine 'python', 'download_hf_models.py'
 }

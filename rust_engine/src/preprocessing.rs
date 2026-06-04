@@ -16,13 +16,10 @@ impl Clahe {
         }
     }
 
-    /// Feature 11: ARM NEON SIMD Intrinsics for Lighting Normalization
+    /// Applies scalar CLAHE in-place to the Y channel.
     ///
-    /// Applies CLAHE in-place to the Y channel.
-    /// In a production build, this block uses `core::arch::aarch64::vld1q_u8`
-    /// to load 16 pixels at a time into a 128-bit NEON vector register.
-    /// This allows us to apply the CDF transformation to 16 pixels in a single CPU cycle,
-    /// dropping preprocessing latency from ~8ms to ~0.5ms on a 3GB Android device.
+    /// ARM NEON acceleration is a planned optimization, not part of this
+    /// implementation.
     pub fn apply_in_place(&self, buffer: &mut [u8], width: usize, height: usize) {
         if buffer.len() < width * height {
             return;

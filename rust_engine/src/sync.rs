@@ -47,10 +47,9 @@ impl SyncManager {
             batch: events,
         };
 
-        // In a real mobile app using Rust, you'd use reqwest or ureq here.
-        // For the sake of this hackathon engine, we mock the HTTP request structure
-        // that the React Native layer will actually execute using JS `fetch` and pass
-        // the response back to Rust to verify the purge token.
+        // HTTP upload is intentionally delegated to the mobile/backend layer for now.
+        // A production build should either implement native HTTP here or expose a
+        // clear JS callback contract that returns the signed purge token.
 
         Ok(count)
     }

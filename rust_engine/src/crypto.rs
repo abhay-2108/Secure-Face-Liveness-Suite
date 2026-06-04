@@ -7,18 +7,46 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Key, Nonce,
 };
 use ed25519_dalek::{Signature, VerifyingKey};
+use lazy_static::lazy_static;
 use rand::rngs::OsRng;
+use sha2::{Digest, Sha256};
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Feature 6: Device Hardware Fingerprinting (Anti-Cloning)
+lazy_static! {
+    static ref HARDWARE_FINGERPRINT: Mutex<Option<[u8; 32]>> = Mutex::new(None);
+}
+
+/// Injects a hardware-bound fingerprint derived from a device identifier.
 ///
-/// Binds the offline ledger cryptographically to the physical phone.
-/// In a real deployment, this queries the Android ID, CPU Serial, or Secure Enclave.
-/// If an attacker steals the encrypted CRDT ledger file and tries to load it on an emulator,
-/// the hardware fingerprint won't match, and the file decrypts to garbage.
-pub fn generate_hardware_fingerprint() -> [u8; 32] {
+/// This should be called from the platform layer (Android/iOS) before any
+/// ledger encryption or sync operations are performed.
+pub fn set_hardware_fingerprint_from_id(device_id: &str) {
+    if device_id.trim().is_empty() {
+        return;
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(device_id.as_bytes());
+    let digest = hasher.finalize();
+
     let mut key = [0u8; 32];
-    // Mocking the JNI call to android.provider.Settings.Secure.ANDROID_ID
+    key.copy_from_slice(&digest[..32]);
+
+    *HARDWARE_FINGERPRINT.lock().unwrap() = Some(key);
+}
+
+/// Prototype device fingerprint used for local ledger encryption.
+///
+/// Production builds must inject a real Android ID, hardware-backed key, or
+/// platform keystore-derived secret before anti-cloning is claimed.
+pub fn generate_hardware_fingerprint() -> [u8; 32] {
+    if let Some(key) = *HARDWARE_FINGERPRINT.lock().unwrap() {
+        return key;
+    }
+
+    let mut key = [0u8; 32];
+    // Fallback for development builds when no device ID is injected.
     let mock_android_id = b"device-specific-hardware-uuid-99";
     for (i, &b) in mock_android_id.iter().enumerate() {
         if i < 32 {

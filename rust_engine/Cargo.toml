@@ -19,6 +19,8 @@ aes-gcm = "0.10.3"
 ed25519-dalek = "2.1.1"
 rand_core = { version = "0.6.4", features = ["std"] }
 hex = "0.4.3"
+sha2 = "0.10.8"
+base64 = "0.21.7"
 
 # Serialization & Storage
 serde = { version = "1.0.210", features = ["derive"] }
@@ -30,6 +32,7 @@ uuid = { version = "1.10.0", features = ["v4"] }
 rand = "0.8.5"
 lazy_static = "1.5.0"
 log = "0.4"
+hnsw_rs = "0.3.0"
 
 # Android NDK / JNI
 [target.'cfg(target_os = "android")'.dependencies]
@@ -41,4 +44,4 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = true
+strip = "debuginfo"

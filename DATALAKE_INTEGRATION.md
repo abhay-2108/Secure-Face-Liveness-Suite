@@ -4,34 +4,40 @@ A core requirement for Hackathon 7.0 is demonstrating the ability to synchronize
 
 Aegis handles this via a zero-trust, edge-first architecture.
 
+Sync endpoints and keys are configured in `aegis-mobile/src/config/sync.ts`.
+
 ## 1. Encrypted Offline Ledger
 When devices operate in remote sites (e.g. mines, deep basements) without internet connectivity, the Rust engine records all authentication attempts (including 128-D vectors and liveness metrics) into a binary ledger (`ledger.bin`).
 
-This file is immediately symmetrically encrypted on-disk using **ChaCha20-Poly1305**. The encryption key is dynamically derived from the Android Hardware ID and CPU serial number, making it impossible to decrypt even if the device is rooted and the file is exfiltrated.
+This file is immediately symmetrically encrypted on-disk using **ChaCha20-Poly1305**. The encryption key is derived from the Android Hardware ID (SHA-256), making it impossible to decrypt even if the device is rooted and the file is exfiltrated.
 
 ## 2. Sync Trigger Mechanism
 When a supervisor triggers a sync (or the device detects a stable Wi-Fi connection), the React Native frontend queries the Rust engine's internal metrics. 
 
-When `metrics.syncStatus === 'syncing'`, the TypeScript layer initiates the synchronization.
+When `OpenFace.triggerSync()` is called, the TypeScript layer initiates the synchronization.
 
 ### The Upload Process (TypeScript)
 ```typescript
-const ledgerPayload = new FormData();
-ledgerPayload.append('file', {
-  uri: 'file:///data/user/0/com.aegisapp/files/ledger.bin',
-  name: 'ledger.bin',
-  type: 'application/octet-stream',
-});
+const ledgerExport = await OpenFace.exportLedgerBase64();
+if (!ledgerExport.success || ledgerExport.byteCount === 0) return;
 
 // Securely POST to AWS API Gateway
-fetch('https://api.datalake.example.com/v3/sync', {
+const response = await fetch('https://api.datalake.example.com/v3/sync', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer HACKATHON_TEMPORARY_TOKEN',
+    'Content-Type': 'application/json',
     'X-Device-Hardware-ID': 'aegis-edge-node-01',
   },
-  body: ledgerPayload,
+  body: JSON.stringify({
+    ledgerBase64: ledgerExport.base64,
+    byteCount: ledgerExport.byteCount,
+  }),
 });
+
+// After the server responds with a purge token and record IDs
+const { purgeToken, recordIds } = await response.json();
+await OpenFace.verifyAndPurge(recordIds, purgeToken, SERVER_PUBLIC_KEY_HEX);
 ```
 
 ## 3. Destructive Purge (GDPR / CCPA Compliance)

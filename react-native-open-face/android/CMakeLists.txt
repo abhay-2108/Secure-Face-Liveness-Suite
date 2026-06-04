@@ -17,12 +17,8 @@ add_library(open_face_jni SHARED
 
 )
 
-# Link against the pre-built Rust engine static/shared library
-add_library(OpenFace_engine SHARED IMPORTED)
-set_target_properties(OpenFace_engine PROPERTIES
-    IMPORTED_LOCATION "${RUST_LIB_DIR}/libopen_face_engine.so"
-    IMPORTED_SONAME "libopen_face_engine.so"
-)
+# Provide the path to the pre-built Rust shared library
+link_directories("${RUST_LIB_DIR}")
 
 # Find the Android log and graphics libraries
 find_library(log-lib log)
@@ -37,8 +33,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(libyuv)
 
+# To prevent lld from hardcoding relative paths into DT_NEEDED, we copy the Rust library
+# directly into the CMake build directory. This ensures the relative path is just the filename.
+file(COPY "${RUST_LIB_DIR}/libopen_face_engine.so" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
+add_library(open_face_engine SHARED IMPORTED)
+set_target_properties(open_face_engine PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/libopen_face_engine.so"
+)
+
 target_link_libraries(open_face_jni
-    OpenFace_engine
+    open_face_engine
     yuv
     ${log-lib}
     ${android-lib}

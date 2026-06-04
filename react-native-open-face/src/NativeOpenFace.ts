@@ -15,9 +15,18 @@ const LINKING_ERROR =
 
 export interface NativeOpenFaceSpec {
   initialize(configJson: string): Promise<string>;
+  loadModels(customOtaPath: string): Promise<string>;
+  setDeviceId(deviceId: string): Promise<string>;
   searchIdentity(embeddingJson: string): Promise<string>;
   enrollIdentity(label: string, embeddingJson: string): Promise<string>;
   getSyncStatus(): Promise<string>;
+  exportLedgerBase64(): Promise<string>;
+  verifyAndPurge(
+    recordIdsJson: string,
+    purgeTokenHex: string,
+    serverPublicKeyHex: string,
+  ): Promise<string>;
+  setSyncStatus(status: string): Promise<string>;
   getMetrics(): Promise<string>;
   forcePurge(): Promise<string>;
   triggerSync(): Promise<void>;

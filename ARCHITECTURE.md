@@ -10,6 +10,23 @@
 
 ---
 
+## Current Implementation Note
+
+This document describes the target architecture and the parts already present in the repository. As of 2026-06-04, several advanced items are still prototypes:
+
+| Component | Current state |
+| --- | --- |
+| Frame processor Android build | Live frame processors are blocked locally by a VisionCamera/worklets CMake regeneration issue. APK packaging succeeds with frame processors disabled. |
+| Vector index | HNSW approximate nearest neighbor search is implemented via `hnsw_rs`. |
+| Hardware-bound encryption | Android ID (SHA-256) binding is implemented on Android. iOS keystore binding is still pending. |
+| Sync | Local ledger and purge primitives exist. HTTP sync is scaffolded/delegated, not complete native end-to-end sync. |
+| CLAHE | Implemented as scalar Rust. ARM NEON acceleration is planned, not currently implemented. |
+| iOS | iOS package scaffolding exists. Verified iOS Rust/staticlib integration is not complete. |
+
+The rest of this document should be read as the design direction plus implementation notes, not as a certification that every optimization is production-complete.
+
+---
+
 OpenFace is not a standard React Native module. It is a highly optimized, bare-metal Edge AI inference engine explicitly designed to solve the hardest problems in edge computing: Out-Of-Memory (OOM) crashes, extreme thermal hardware throttling, intermittent network instability, and sophisticated biometric theft.
 
 By pushing the boundaries of memory management and utilizing a strict 4-tier separation of concerns, OpenFace operates entirely offline, running complex Neural Networks on 3GB RAM devices at sub-20ms latencies.

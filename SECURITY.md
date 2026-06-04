@@ -34,7 +34,7 @@ If you are auditing OpenFace, please be aware of the following architectural gua
 Facial embeddings are never serialized to standard JSON files. They are stored inside a binary CRDT ledger. 
 
 ### 2. ChaCha20-Poly1305 Hardware Binding
-The binary ledger is encrypted symmetrically using `ChaCha20-Poly1305`. The 256-bit encryption key is not hardcoded. It is mathematically derived from the unique CPU Serial Number and the Android Hardware ID. 
+The binary ledger is encrypted symmetrically using `ChaCha20-Poly1305`. The 256-bit encryption key is not hardcoded. It is derived from the Android Hardware ID (SHA-256).
 - **Attack Vector Defeated**: If a malicious actor roots the phone, steals the SQLite/binary ledger, and transfers it to a computer, the file will be completely unreadable because the decryption key cannot be derived off-device.
 
 ### 3. AES-GCM Model Protection
@@ -49,7 +49,7 @@ When the device connects to the internet to sync offline logs, it requires a sig
 
 We actively defend against the following physical and digital attack vectors:
 - **Presentation Attacks (Spoofing):** Defeated via our JSI-bridged Fourier Analysis (Mini-FAS-Net) which rejects 2D screens and high-res printed photographs at the Edge before an embedding is even generated.
-- **Root/Jailbreak Theft:** Defeated via Hardware-Bound ChaCha20 Keys. If an attacker roots the OS to dump the local `ledger.bin`, the encrypted embeddings cannot be extracted without the physical CPU serial.
+- **Root/Jailbreak Theft:** Defeated via Hardware-Bound ChaCha20 Keys. If an attacker roots the OS to dump the local `ledger.bin`, the encrypted embeddings cannot be extracted without the Android Hardware ID.
 - **Model Reverse Engineering:** Defeated via AES-256-GCM. The weights for GhostFaceNet and our Liveness models are shipped completely encrypted.
 - **Memory Dumping/Scraping:** Defeated via our 40MB Rust Lock Arena. Sensitive tensor allocations exist inside a highly restricted, statically allocated block of RAM that bypasses standard OS memory managers and rewinds to zero instantly.
 

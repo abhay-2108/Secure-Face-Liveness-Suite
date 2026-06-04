@@ -1,5 +1,7 @@
 # Aegis: Secure Face Liveness Suite - Performance & Biometric Benchmark Report
 
+> **Audit note (2026-06-04):** Treat this file as prototype benchmark evidence until it is rerun on the actual Android target device. Some historical wording below refers to scripts/environments that are not currently verified in this repository. The checked artifact available today is `benchmark_results_onnx.json`; final submission should include device model, Android version, RAM, APK model footprint, and reproducible commands.
+
 > **Generated from**: `run_benchmarks.py` executed against live CUDA environment  
 > **Date**: May 29, 2026  
 > **Target Platform**: On-device Edge Attendance Terminals  

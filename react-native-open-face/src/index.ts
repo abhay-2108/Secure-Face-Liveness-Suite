@@ -27,4 +27,5 @@ export type {
   IdentityRecord,
   EnrollmentResult,
   PurgeResult,
+  LedgerExportResult,
 } from './types';
