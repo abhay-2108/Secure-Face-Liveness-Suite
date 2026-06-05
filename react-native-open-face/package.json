@@ -78,6 +78,7 @@
     ]
   },
   "dependencies": {
-    "react-native-vision-camera": "^4.7.3"
+    "react-native-vision-camera": "^4.7.3",
+    "yargs": "^17.0.0"
   }
 }

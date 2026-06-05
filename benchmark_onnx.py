@@ -9,14 +9,16 @@ import onnxruntime as ort
 
 def preprocess(img_bgr, target_size, mean, std):
     """Resizes and normalizes an image for ONNX models."""
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    resized = cv2.resize(img_rgb, target_size)
+    img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    resized = cv2.resize(img_gray, target_size)
     # Convert to float32
     img_float = resized.astype(np.float32)
     # Normalize
     img_norm = (img_float - mean) / std
+    # Grayscale image shape is (H, W), we need to add the channel dimension to make it (H, W, 1)
+    img_expanded = np.expand_dims(img_norm, axis=2)
     # Transpose from HWC to CHW
-    img_chw = np.transpose(img_norm, (2, 0, 1))
+    img_chw = np.transpose(img_expanded, (2, 0, 1))
     # Add batch dimension
     img_batch = np.expand_dims(img_chw, axis=0)
     return img_batch

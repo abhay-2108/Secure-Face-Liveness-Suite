@@ -3,48 +3,48 @@
   "results": [
     {
       "image": "iamge2.jpg",
-      "detection_ms": 4.483,
-      "liveness_ms": 1.605,
-      "recognition_ms": 10.097,
-      "total_ms": 16.186,
+      "detection_ms": 63.521,
+      "liveness_ms": 36.005,
+      "recognition_ms": 6.716,
+      "total_ms": 106.243,
       "liveness_label": "SPOOF",
-      "liveness_score": 0.3717
+      "liveness_score": 0.3628
     },
     {
       "image": "iamge3.jpg",
-      "detection_ms": 2.907,
-      "liveness_ms": 0.333,
-      "recognition_ms": 8.32,
-      "total_ms": 11.56,
+      "detection_ms": 1.597,
+      "liveness_ms": 0.184,
+      "recognition_ms": 30.37,
+      "total_ms": 32.151,
       "liveness_label": "SPOOF",
-      "liveness_score": 0.3729
+      "liveness_score": 0.3626
     },
     {
       "image": "image1.jpg",
-      "detection_ms": 2.361,
-      "liveness_ms": 0.313,
-      "recognition_ms": 36.326,
-      "total_ms": 39.0,
+      "detection_ms": 32.749,
+      "liveness_ms": 0.575,
+      "recognition_ms": 10.282,
+      "total_ms": 43.605,
       "liveness_label": "SPOOF",
-      "liveness_score": 0.3775
+      "liveness_score": 0.3626
     },
     {
       "image": "image4.jpg",
-      "detection_ms": 5.173,
-      "liveness_ms": 0.31,
-      "recognition_ms": 3.355,
-      "total_ms": 8.838,
+      "detection_ms": 1.064,
+      "liveness_ms": 0.213,
+      "recognition_ms": 3.242,
+      "total_ms": 4.519,
       "liveness_label": "SPOOF",
-      "liveness_score": 0.3654
+      "liveness_score": 0.3629
     },
     {
       "image": "image5.jpg",
-      "detection_ms": 3.292,
-      "liveness_ms": 0.34,
-      "recognition_ms": 20.394,
-      "total_ms": 24.026,
+      "detection_ms": 4.694,
+      "liveness_ms": 0.236,
+      "recognition_ms": 39.21,
+      "total_ms": 44.141,
       "liveness_label": "SPOOF",
-      "liveness_score": 0.3727
+      "liveness_score": 0.3629
     }
   ]
 }
