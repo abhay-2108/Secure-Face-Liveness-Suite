@@ -93,3 +93,7 @@ aegis-mobile/android/app/build/
 aegis-mobile/ios/build/
 aegis-mobile/ios/Pods/
 aegis-mobile/.yarn/
+
+# Build caching & Zip archives
+*.tsbuildinfo
+NHAI_Aegis_Proposal.zip
