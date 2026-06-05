@@ -241,6 +241,26 @@ export const AuthenticationScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
         )}
+
+        {/* Failed / Try Again overlay */}
+        {authPhase === 'FAILED' && (
+          <View style={styles.failedOverlay}>
+            <View style={styles.failedCard}>
+              <Text style={styles.failedIcon}>❌</Text>
+              <Text style={styles.failedTitle}>Authentication Failed</Text>
+              <Text style={styles.failedSubtitle}>
+                {livenessStatus === 'failed' ? 'Liveness check failed' : 'Face not recognized'}
+              </Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={resetScan}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.retryBtnText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
           </>
         )}
       </View>
@@ -426,5 +446,52 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'monospace',
     marginBottom: 2,
+  },
+  failedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 82, 82, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 85,
+  },
+  failedCard: {
+    backgroundColor: 'rgba(5, 5, 16, 0.95)',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xxl,
+    borderRadius: BorderRadius.xxl,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.accent.danger,
+    width: '80%',
+  },
+  failedIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  failedTitle: {
+    color: Colors.accent.danger,
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    marginBottom: Spacing.xs,
+  },
+  failedSubtitle: {
+    color: Colors.text.secondary,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    marginBottom: Spacing.xl,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    backgroundColor: Colors.accent.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xxl,
+    borderRadius: BorderRadius.full,
+    width: '100%',
+    alignItems: 'center',
+  },
+  retryBtnText: {
+    color: Colors.text.primary,
+    fontSize: FontSize.base,
+    fontWeight: '700',
   },
 });

@@ -29,13 +29,13 @@ export const ScanReticle: React.FC<Props> = ({ status }) => {
       const pulse = RNAnimated.loop(
         RNAnimated.sequence([
           RNAnimated.timing(pulseAnim, {
-            toValue: 1.04,
-            duration: 1400,
+            toValue: 1.06,
+            duration: 1200,
             useNativeDriver: true,
           }),
           RNAnimated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1400,
+            duration: 1200,
             useNativeDriver: true,
           }),
         ]),
@@ -43,7 +43,12 @@ export const ScanReticle: React.FC<Props> = ({ status }) => {
       pulse.start();
       return () => pulse.stop();
     } else {
-      pulseAnim.setValue(1);
+      RNAnimated.spring(pulseAnim, {
+        toValue: status === 'passed' ? 1.1 : 0.95,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
     }
   }, [status, pulseAnim]);
 
@@ -54,6 +59,10 @@ export const ScanReticle: React.FC<Props> = ({ status }) => {
           styles.reticle,
           {
             borderColor: color,
+            shadowColor: color,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.8,
+            shadowRadius: status === 'passed' ? 20 : 10,
             transform: [{ scale: pulseAnim }],
           },
         ]}

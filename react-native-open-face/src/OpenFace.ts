@@ -108,13 +108,10 @@ export class OpenFace {
       );
     }
 
-    const loadModelsJson = await NativeOpenFace.loadModels('');
-    const loadModelsResult = parseNativeResponse<{ success: boolean; error?: string }>(
-      loadModelsJson
-    );
-    if (!loadModelsResult.success) {
+    const modelsLoaded = await NativeOpenFace.loadModels('');
+    if (!modelsLoaded) {
       throw new Error(
-        `[OpenFace] Model loading failed: ${loadModelsResult.error ?? 'unknown error'}`
+        `[OpenFace] Model loading failed: unknown error`
       );
     }
 

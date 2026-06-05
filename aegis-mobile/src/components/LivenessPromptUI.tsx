@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { Text, StyleSheet, Vibration, Animated as RNAnimated } from 'react-native';
+import { Text, StyleSheet, Animated as RNAnimated } from 'react-native';
 import { Colors, FontSize, Spacing, BorderRadius } from '../theme';
 
 interface Props {
@@ -19,15 +19,6 @@ export const LivenessPromptUI: React.FC<Props> = ({ prompt }) => {
 
   useEffect(() => {
     if (prompt) {
-      // Haptic patterns per challenge type
-      if (prompt.toLowerCase().includes('blink') || prompt.toLowerCase().includes('close')) {
-        Vibration.vibrate([0, 80, 80, 80]);
-      } else if (prompt.toLowerCase().includes('turn')) {
-        Vibration.vibrate([0, 200]);
-      } else if (prompt.toLowerCase().includes('hold') || prompt.toLowerCase().includes('still')) {
-        Vibration.vibrate(40);
-      }
-
       RNAnimated.parallel([
         RNAnimated.timing(opacity, {
           toValue: 1,
@@ -67,21 +58,27 @@ export const LivenessPromptUI: React.FC<Props> = ({ prompt }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: '14%',
+    top: '12%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(108, 92, 231, 0.92)',
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
+    backgroundColor: 'rgba(5, 5, 20, 0.85)',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,
     zIndex: 20,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   text: {
     color: Colors.text.primary,
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    fontSize: FontSize.lg,
+    fontWeight: '700',
     textTransform: 'capitalize',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
 });

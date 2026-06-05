@@ -218,9 +218,10 @@ Java_com_OpenFace_OpenFaceModule_nativeLoadModels(
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_OpenFace_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
     JNIEnv* env, jobject /* thiz */,
-    jobject directBuffer, jint width, jint height, jint stride, jint flashState) {
+    jobject directBuffer, jint width, jint height, jint stride, jint flashState, jint orientationDegrees) {
 
     uint8_t* y_plane = nullptr;
+    bool needs_free = false;
 
     if (directBuffer != nullptr) {
         // Zero-copy: get the direct buffer address from Java's ByteBuffer
@@ -234,14 +235,57 @@ Java_com_OpenFace_OpenFaceFrameProcessorPlugin_nativeProcessFrame(
         for (int i = 0; i < width * height; i++) {
             y_plane[i] = (uint8_t)(i % 255);
         }
-
-        char* result_c_str = open_face_process_frame(y_plane, width, height, stride, flashState);
-        delete[] y_plane;
-
-        return rustStringToJString(env, result_c_str);
+        needs_free = true;
     }
 
-    // Zero-copy path: pass the hardware camera buffer pointer directly to Rust
-    char* result_c_str = open_face_process_frame(y_plane, width, height, stride, flashState);
+    // --- High-Performance Zero-Churn Rotation ---
+    // Frame processors run on a dedicated VisionCamera thread. We use thread_local
+    // to reuse the same memory allocation for every frame.
+    thread_local std::vector<uint8_t> rotation_buffer;
+
+    char* result_c_str = nullptr;
+
+    if (orientationDegrees == 90 || orientationDegrees == 270) {
+        // Dimensions get swapped on 90/270 degree rotation
+        int new_width = height;
+        int new_height = width;
+        int new_size = new_width * new_height;
+
+        if (rotation_buffer.size() < new_size) {
+            rotation_buffer.resize(new_size);
+        }
+
+        libyuv::RotationMode mode = libyuv::kRotate90;
+        if (orientationDegrees == 270) mode = libyuv::kRotate270;
+
+        libyuv::RotatePlane(
+            y_plane, stride,
+            rotation_buffer.data(), new_width, // new stride is new width
+            width, height,
+            mode
+        );
+
+        result_c_str = open_face_process_frame(rotation_buffer.data(), new_width, new_height, new_width, flashState);
+    } else if (orientationDegrees == 180) {
+        int new_size = width * height;
+        if (rotation_buffer.size() < new_size) {
+            rotation_buffer.resize(new_size);
+        }
+        libyuv::RotatePlane(
+            y_plane, stride,
+            rotation_buffer.data(), width,
+            width, height,
+            libyuv::kRotate180
+        );
+        result_c_str = open_face_process_frame(rotation_buffer.data(), width, height, width, flashState);
+    } else {
+        // Zero-copy direct pass if no rotation needed
+        result_c_str = open_face_process_frame(y_plane, width, height, stride, flashState);
+    }
+
+    if (needs_free) {
+        delete[] y_plane;
+    }
+
     return rustStringToJString(env, result_c_str);
 }

@@ -5,7 +5,7 @@
  * Captures multiple frames for robust embedding generation.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraPreview } from '../components/CameraPreview';
 import { ScanReticle } from '../components/ScanReticle';
+import { LivenessPromptUI } from '../components/LivenessPromptUI';
 import { useOpenFace } from '../hooks/useOpenFace';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -35,12 +36,18 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
     lastFrameResult,
     enrollIdentity,
     cameraPosition,
+    livenessPrompt,
+    flashColor,
+    authPhase,
+    triggerSync,
   } = useOpenFace({ mode: 'enroll' });
 
   const [workerName, setWorkerName] = useState('');
   const [enrollState, setEnrollState] = useState<EnrollState>('input');
   const [enrolledId, setEnrolledId] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const enrollingRef = useRef(false);
 
   useEffect(() => {
     initializeEngine();
@@ -58,6 +65,20 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    const liveness = lastFrameResult.liveness;
+    if (liveness) {
+      if (liveness.isReal === false) {
+        setErrorMsg('Spoofing detected. Enrollment denied.');
+        setEnrollState('error');
+        return;
+      }
+      if (liveness.silentScore < 0.80) {
+        setErrorMsg(`Liveness confidence too low (${(liveness.silentScore * 100).toFixed(0)}%). Please adjust lighting.`);
+        setEnrollState('error');
+        return;
+      }
+    }
+
     setEnrollState('processing');
 
     const result = await enrollIdentity(workerName.trim(), lastFrameResult.embedding);
@@ -65,18 +86,35 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
     if (result.success) {
       setEnrolledId(result.identityId);
       setEnrollState('success');
+      triggerSync(); // Immediately push new identity to the cloud
     } else {
       setErrorMsg(result.error || 'Enrollment failed');
       setEnrollState('error');
     }
-  }, [lastFrameResult, workerName, enrollIdentity]);
+  }, [lastFrameResult, workerName, enrollIdentity, triggerSync]);
 
   const handleReset = useCallback(() => {
     setEnrollState('input');
     setWorkerName('');
     setEnrolledId('');
     setErrorMsg('');
+    enrollingRef.current = false;
   }, []);
+
+  // Auto-Capture when Liveness passes and embedding is ready
+  useEffect(() => {
+    if (enrollState === 'capturing' && !enrollingRef.current) {
+      if (
+        workerName.trim() &&
+        lastFrameResult?.liveness?.status === 'passed' &&
+        lastFrameResult?.embedding &&
+        lastFrameResult.embedding.length === 128
+      ) {
+        enrollingRef.current = true;
+        handleCapture();
+      }
+    }
+  }, [enrollState, lastFrameResult, handleCapture, workerName]);
 
   // ─── Input Phase ───
   if (enrollState === 'input') {
@@ -134,26 +172,32 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
     
     if (__DEV__) {
       console.log(
-        '[Enrollment] isReady:',
-        isReady,
-        '| faceDetected:',
-        faceDetected,
-        '| embeddingLen:',
-        embLen,
-        '| livenessStatus:',
-        livenessStatus,
-        '| fullResult:',
-        lastFrameResult ? JSON.stringify(lastFrameResult).substring(0, 200) : 'null'
+        '[Enrollment] isReady:', isReady,
+        '| faceDetected:', lastFrameResult?.faceDetected,
+        '| embeddingLen:', embLen,
+        '| livenessStatus:', lastFrameResult?.liveness?.status,
+        '| fullResult:', lastFrameResult ? JSON.stringify(lastFrameResult) : 'null'
       );
     }
 
     return (
       <View style={styles.container}>
+        {/* Screen Flash Overlay (Tier 3 Liveness) */}
+        {flashColor !== 'transparent' && (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: flashColor, zIndex: 99999 },
+            ]}
+          />
+        )}
         <CameraPreview
           frameProcessor={frameProcessor}
           cameraPosition={cameraPosition}
         />
-        <ScanReticle status="scanning" />
+        <LivenessPromptUI prompt={livenessPrompt} />
+        <ScanReticle status={authPhase === 'SUCCESS' ? 'passed' : authPhase === 'FAILED' ? 'failed' : 'scanning'} />
 
         <View style={[styles.captureTopBar, { top: insets.top + 10 }]}>
           <TouchableOpacity
@@ -164,6 +208,16 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
           <View style={styles.namePill}>
             <Text style={styles.namePillText}>Enrolling: {workerName}</Text>
+          </View>
+        </View>
+
+        {/* Status Pill matching Auth Screen */}
+        <View style={[styles.statusContainer, { top: insets.top + 70 }]}>
+          <View style={styles.statusPill}>
+            <View style={[styles.statusDot, { backgroundColor: authPhase === 'EXTRACTING' ? Colors.accent.success : Colors.accent.primary }]} />
+            <Text style={styles.statusText}>
+              {authPhase === 'EXTRACTING' ? 'CAPTURING' : authPhase === 'FAILED' ? 'FAILED' : 'SCANNING'}
+            </Text>
           </View>
         </View>
 
@@ -181,24 +235,11 @@ export const EnrollmentScreen: React.FC<Props> = ({ navigation }) => {
               ? 'Initializing engine...'
               : !lastFrameResult?.faceDetected 
               ? 'No face detected. Move closer/better light.' 
-              : (!lastFrameResult?.embedding || lastFrameResult.embedding.length < 128)
-                ? `Extracting features... Hold still. (${embLen} dims)`
-                : 'Ready! Tap Capture.'}
+              : authPhase === 'EXTRACTING'
+                ? `Locking features... (${embLen} dims)`
+                : `Liveness Challenge Active`}
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.captureBtn,
-              (!lastFrameResult?.faceDetected || !lastFrameResult?.embedding || lastFrameResult.embedding.length < 128) && styles.captureBtnDisabled
-            ]}
-            onPress={handleCapture}
-            disabled={!lastFrameResult?.faceDetected || !lastFrameResult?.embedding || lastFrameResult.embedding.length < 128}
-            activeOpacity={0.8}
-          >
-            <View style={[
-              styles.captureBtnInner,
-              (!lastFrameResult?.faceDetected || !lastFrameResult?.embedding || lastFrameResult.embedding.length < 128) && styles.captureBtnInnerDisabled
-            ]} />
-          </TouchableOpacity>
+          {/* We remove the manual capture button, relying on Auto-Capture */}
         </View>
       </View>
     );
@@ -379,6 +420,33 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '700',
   },
+  statusContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+    zIndex: 100,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(5,5,16,0.7)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+    gap: Spacing.sm,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    color: Colors.text.primary,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
   captureBottom: {
     position: 'absolute',
     bottom: 0,
@@ -391,28 +459,6 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontSize: FontSize.sm,
     marginBottom: Spacing.md,
-  },
-  captureBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: Colors.text.primary,
-  },
-  captureBtnInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.text.primary,
-  },
-  captureBtnDisabled: {
-    borderColor: Colors.border.medium,
-  },
-  captureBtnInnerDisabled: {
-    backgroundColor: Colors.border.medium,
   },
 
   // ─── Processing ───

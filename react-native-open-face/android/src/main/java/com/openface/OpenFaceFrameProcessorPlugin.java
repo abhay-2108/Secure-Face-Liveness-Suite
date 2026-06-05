@@ -33,7 +33,8 @@ public class OpenFaceFrameProcessorPlugin extends FrameProcessorPlugin {
         int width,
         int height,
         int stride,
-        int flashState
+        int flashState,
+        int orientationDegrees
     );
 
     public OpenFaceFrameProcessorPlugin(
@@ -65,15 +66,28 @@ public class OpenFaceFrameProcessorPlugin extends FrameProcessorPlugin {
             int stride = planes[0].getRowStride();
 
             int flashState = 0;
-            if (arguments != null && arguments.containsKey("flashState")) {
-                Object val = arguments.get("flashState");
-                if (val instanceof Number) {
-                    flashState = ((Number) val).intValue();
+            int orientationDegrees = 0;
+            if (arguments != null) {
+                if (arguments.containsKey("flashState")) {
+                    Object val = arguments.get("flashState");
+                    if (val instanceof Number) {
+                        flashState = ((Number) val).intValue();
+                    }
+                }
+                if (arguments.containsKey("orientation")) {
+                    Object val = arguments.get("orientation");
+                    if (val instanceof String) {
+                        String ori = (String) val;
+                        if (ori.equals("portrait")) orientationDegrees = 90;
+                        else if (ori.equals("portrait-upside-down")) orientationDegrees = 270;
+                        else if (ori.equals("landscape-left")) orientationDegrees = 0;
+                        else if (ori.equals("landscape-right")) orientationDegrees = 180;
+                    }
                 }
             }
 
             // Pass the direct buffer to JNI → C++ → Rust
-            return nativeProcessFrame(yBuffer, width, height, stride, flashState);
+            return nativeProcessFrame(yBuffer, width, height, stride, flashState, orientationDegrees);
 
         } catch (com.mrousavy.camera.core.FrameInvalidError e) {
             return "{\"faceDetected\": false, \"error\": \"FrameInvalidError: " + e.getMessage() + "\"}";

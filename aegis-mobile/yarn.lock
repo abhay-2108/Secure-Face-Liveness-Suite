@@ -7661,13 +7661,13 @@ __metadata:
 
 "react-native-open-face@file:../react-native-open-face::locator=aegis-app%40workspace%3A.":
   version: 1.0.0
-  resolution: "react-native-open-face@file:../react-native-open-face#../react-native-open-face::hash=8bd3a6&locator=aegis-app%40workspace%3A."
+  resolution: "react-native-open-face@file:../react-native-open-face#../react-native-open-face::hash=cbac10&locator=aegis-app%40workspace%3A."
   dependencies:
     react-native-vision-camera: ^4.7.3
   peerDependencies:
     react: ">=18.0.0"
     react-native: ">=0.72.0"
-  checksum: 2eaf2ef8d88e5d1798cf04bbb7689a836860bde5c6aea9c58acb31a646c38e711a6e403b86e88e0e18ae3130dcccba5cba3213d0eb0fb4acf0338b55693df498
+  checksum: 0710273af9f1ab809f19164360ba91d376a8af4e80aaf58a2c745229d7c536d89b2d10c64f402ad7bca8ccaaf3e2ce7201dd582a66bf5c322e6b74d2beb048c3
   languageName: node
   linkType: hard
 

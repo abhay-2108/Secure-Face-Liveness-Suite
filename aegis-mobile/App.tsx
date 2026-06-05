@@ -20,7 +20,8 @@ import { LandingScreen } from './src/screens/LandingScreen';
 import { AuthenticationScreen } from './src/screens/AuthenticationScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { EnrollmentScreen } from './src/screens/EnrollmentScreen';
-import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { ErrorBoundary as AppErrorBoundary } from './src/components/ErrorBoundary';
+import { EngineErrorBoundary } from './src/components/EngineErrorBoundary';
 
 export type RootStackParamList = {
   Landing: undefined;
@@ -33,7 +34,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <ErrorBoundary>
+    <AppErrorBoundary>
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor="#050510" translucent />
         <NavigationContainer>
@@ -46,12 +47,24 @@ export default function App() {
             }}
           >
             <Stack.Screen name="Landing" component={LandingScreen} />
-            <Stack.Screen name="Authentication" component={AuthenticationScreen} />
+            <Stack.Screen name="Authentication">
+              {(props) => (
+                <EngineErrorBoundary>
+                  <AuthenticationScreen {...props} />
+                </EngineErrorBoundary>
+              )}
+            </Stack.Screen>
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
-            <Stack.Screen name="Enrollment" component={EnrollmentScreen} />
+            <Stack.Screen name="Enrollment">
+              {(props) => (
+                <EngineErrorBoundary>
+                  <EnrollmentScreen {...props} />
+                </EngineErrorBoundary>
+              )}
+            </Stack.Screen>
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
-    </ErrorBoundary>
+    </AppErrorBoundary>
   );
 }

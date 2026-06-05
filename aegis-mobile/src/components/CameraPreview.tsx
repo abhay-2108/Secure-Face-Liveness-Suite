@@ -14,6 +14,8 @@ import {
 } from 'react-native-vision-camera';
 import { Colors, FontSize, Spacing, BorderRadius } from '../theme';
 
+import { CameraErrorBoundary } from './CameraErrorBoundary';
+
 interface CameraPreviewProps {
   frameProcessor?: any;
   cameraPosition: 'front' | 'back';
@@ -59,14 +61,16 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   return (
     <View style={styles.container}>
-      <Camera
-        style={StyleSheet.absoluteFill}
-        device={device}
-        isActive={true}
-        frameProcessor={frameProcessor}
-        pixelFormat="yuv"
-        outputOrientation="device"
-      />
+      <CameraErrorBoundary>
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+          frameProcessor={frameProcessor}
+          pixelFormat="yuv"
+          outputOrientation="device"
+        />
+      </CameraErrorBoundary>
     </View>
   );
 };
