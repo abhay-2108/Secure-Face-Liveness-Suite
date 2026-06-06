@@ -20,6 +20,7 @@ from schemas import (
     PredictRequest, PredictResponse, BoundingBox, Latencies,
     RegisterRequest, RegisterResponse,
     IdentitiesResponse, IdentityRecord,
+    TelemetryResponse,
 )
 
 # ── Logging ────────────────────────────────────────────────────────────────────
@@ -27,8 +28,17 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+import time
+
 # ── App State ──────────────────────────────────────────────────────────────────
 pipeline: FacePipeline | None = None
+session_start_time: float = time.time()
+session_telemetry = {
+    "total_inferences": 0,
+    "total_latency_ms": 0.0,
+    "real_faces": 0,
+    "spoof_faces": 0
+}
 
 
 @asynccontextmanager
@@ -107,6 +117,17 @@ async def predict(req: PredictRequest):
         )
 
     lat = raw["latencies"]
+    
+    # Update ephemeral telemetry
+    session_telemetry["total_inferences"] += 1
+    session_telemetry["total_latency_ms"] += lat.get("total_ms", 0)
+    
+    if raw["face_detected"]:
+        if raw["liveness_label"] == "REAL":
+            session_telemetry["real_faces"] += 1
+        elif raw["liveness_label"] and "SPOOF" in raw["liveness_label"]:
+            session_telemetry["spoof_faces"] += 1
+
     return PredictResponse(
         faceDetected=raw["face_detected"],
         bbox=bbox,
@@ -171,3 +192,16 @@ async def delete_identity(name: str):
     if not removed:
         raise HTTPException(404, f"Identity '{name}' not found")
     return {"success": True, "message": f"Deleted '{name}'"}
+
+@app.get("/telemetry", response_model=TelemetryResponse)
+async def get_telemetry():
+    t_inf = session_telemetry["total_inferences"]
+    avg_lat = session_telemetry["total_latency_ms"] / t_inf if t_inf > 0 else 0.0
+    uptime = time.time() - session_start_time
+    return TelemetryResponse(
+        totalInferences=t_inf,
+        avgLatencyMs=avg_lat,
+        realFaces=session_telemetry["real_faces"],
+        spoofFaces=session_telemetry["spoof_faces"],
+        uptimeSeconds=uptime,
+    )

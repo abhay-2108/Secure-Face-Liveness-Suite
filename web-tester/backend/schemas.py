@@ -56,3 +56,11 @@ class IdentityRecord(BaseModel):
 class IdentitiesResponse(BaseModel):
     identities: List[IdentityRecord]
     count: int
+
+
+class TelemetryResponse(BaseModel):
+    totalInferences: int
+    avgLatencyMs: float
+    realFaces: int
+    spoofFaces: int
+    uptimeSeconds: float

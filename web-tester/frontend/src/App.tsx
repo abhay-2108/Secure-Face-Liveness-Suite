@@ -8,8 +8,9 @@ import { CameraFeed } from './components/CameraFeed';
 import { ResultPanel } from './components/ResultPanel';
 import { RegisterModal } from './components/RegisterModal';
 import { IdentityPanel } from './components/IdentityPanel';
+import { SessionTelemetry } from './components/SessionTelemetry';
 
-type Tab = 'live' | 'registry';
+type Tab = 'live' | 'registry' | 'telemetry';
 
 const CAPTURE_INTERVAL_MS = 333; // ~3 FPS to backend
 
@@ -160,6 +161,13 @@ export default function App() {
               Register Face
             </button>
           )}
+          {/* Telemetry Tab */}
+          <button
+            className={`tab-btn ${tab === 'telemetry' ? 'active' : ''}`}
+            onClick={() => setTab('telemetry')}
+          >
+            📊 Telemetry
+          </button>
         </div>
       </header>
 
@@ -303,6 +311,13 @@ export default function App() {
             <div className="glass-card p-6">
               <IdentityPanel refreshTrigger={registryTrigger} />
             </div>
+          </div>
+        )}
+
+        {/* ── TELEMETRY TAB ─────────────────────────────────────── */}
+        {tab === 'telemetry' && (
+          <div style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
+            <SessionTelemetry />
           </div>
         )}
       </main>

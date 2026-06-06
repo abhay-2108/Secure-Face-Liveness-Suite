@@ -44,6 +44,14 @@ export interface IdentitiesResponse {
   count: number;
 }
 
+export interface TelemetryResponse {
+  totalInferences: number;
+  avgLatencyMs: number;
+  realFaces: number;
+  spoofFaces: number;
+  uptimeSeconds: number;
+}
+
 // Uses environment variable in production, falls back to Vite proxy in development
 // @ts-ignore
 const BASE = import.meta.env.VITE_API_BASE_URL || 'https://kshitijpalsinghtomar-aegis-face-liveness-api.hf.space';
@@ -97,5 +105,10 @@ export async function checkHealth(): Promise<boolean> {
 export async function getModelInfo() {
   const res = await fetch(`${BASE}/model-info`);
   if (!res.ok) throw new Error('model-info failed');
+  return res.json();
+}
+export async function getTelemetry(): Promise<TelemetryResponse> {
+  const res = await fetch(`${BASE}/telemetry`);
+  if (!res.ok) throw new Error(`getTelemetry ${res.status}`);
   return res.json();
 }
