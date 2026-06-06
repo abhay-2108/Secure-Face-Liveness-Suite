@@ -25,18 +25,18 @@ _FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_front
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _THIS_DIR  = Path(__file__).parent
-_ONNX_DIR  = _THIS_DIR / ".." / ".." / "models_onnx"
+_ONNX_DIR  = _THIS_DIR / ".." / ".." / "edge_vision_engine" / "checkpoints" / "onnx"
 
 MODEL_FILES = {
     "int8": {
-        "detector":   _ONNX_DIR / "linzaer_detector_int8.onnx",
-        "liveness":   _ONNX_DIR / "mini_fas_net_int8.onnx",
-        "recognizer": _ONNX_DIR / "ghostfacenet_s_int8.onnx",
+        "detector":   _ONNX_DIR / "detector.onnx",
+        "liveness":   _ONNX_DIR / "liveness.onnx",
+        "recognizer": _ONNX_DIR / "ghostfacenet.onnx",
     },
     "fp32": {
-        "detector":   _ONNX_DIR / "linzaer_detector.onnx",
-        "liveness":   _ONNX_DIR / "mini_fas_net.onnx",
-        "recognizer": _ONNX_DIR / "ghostfacenet_s.onnx",
+        "detector":   _ONNX_DIR / "detector.onnx",
+        "liveness":   _ONNX_DIR / "liveness.onnx",
+        "recognizer": _ONNX_DIR / "ghostfacenet.onnx",
     },
 }
 
