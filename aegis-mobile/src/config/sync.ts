@@ -1,9 +1,9 @@
 export const syncConfig = {
-  endpoint: '',
-  authToken: '',
-  serverPublicKeyHex: '',
+  endpoint: 'https://mock.nhai-hackathon.gov.in/api/v1/sync',
+  authToken: 'mock_token_hackathon_demo_123',
+  serverPublicKeyHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   deviceIdHeader: 'X-Device-Hardware-ID',
-  deviceIdValue: '',
+  deviceIdValue: 'DEMO-DEVICE-999',
   timeoutMs: 15000,
 };
 

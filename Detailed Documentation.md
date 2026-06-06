@@ -828,7 +828,7 @@ rust_engine/src/
 ├── ledger.rs           ← Append-only encrypted event log
 ├── sync.rs             ← Offline→online sync coordinator
 ├── liveness.rs         ← Laplacian variance micro-texture analysis
-└── preprocessing.rs    ← CLAHE contrast equalization + SIMD
+└── preprocessing.rs    ← CLAHE contrast equalization (Scalar)
 ```
 
 ---
@@ -1775,7 +1775,7 @@ Secure-Face-Liveness-Suite/
 | `ledger.rs` | ~180 | Binary event serialization, append-only I/O |
 | `sync.rs` | ~150 | Batch construction, sync state machine |
 | `liveness.rs` | ~100 | Laplacian convolution, variance computation |
-| `preprocessing.rs` | ~200 | CLAHE implementation, SIMD histograms |
+| `preprocessing.rs` | ~200 | CLAHE implementation (Scalar processing) |
 
 ### ML Models (Python) — 7 files
 

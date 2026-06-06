@@ -43,7 +43,7 @@ The production demo app lives in `aegis-mobile/` and is the primary UI for live 
 
 ### 📥 Pre-Built Release APK
 For fast evaluation on physical Android devices, you can download and install our pre-built release binary directly:
-👉 **[Download app-arm64-v8a-release.apk](https://github.com/abhay-2108/Secure-Face-Liveness-Suite/raw/main/react-native-open-face/aegis-app/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk)**
+👉 **[Download app-arm64-v8a-release.apk](./releases/app-arm64-v8a-release.apk)**
 
 ### Build from Source
 ```bash
