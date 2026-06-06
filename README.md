@@ -28,7 +28,7 @@
     <a href="https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite"><img src="https://img.shields.io/badge/📖_DeepWiki-Interactive_Docs-7B68EE?style=for-the-badge" alt="DeepWiki Documentation" /></a>
     <br />
     <br />
-    <a href="https://frontend-ec7nbazna-kshitijpalsinghtomar-4927s-projects.vercel.app"><img src="https://img.shields.io/badge/🌐_Live_Web_Demo-Test_Aegis_Now-000000?style=for-the-badge&logo=vercel" alt="Live Web App" /></a>
+    <a href="https://aegis-secure-face-liveness-suite.vercel.app/"><img src="https://img.shields.io/badge/🌐_Live_Web_Demo-Test_Aegis_Now-000000?style=for-the-badge&logo=vercel" alt="Live Web App" /></a>
     &nbsp;&nbsp;
     <a href="./releases/app-arm64-v8a-release.apk"><img src="https://img.shields.io/badge/📥_Download_APK-Android_Release-3DDC84?style=for-the-badge&logo=android" alt="Android APK" /></a>
   </p>
@@ -46,7 +46,7 @@
 
 You can instantly test the Aegis face liveness and recognition pipeline directly in your browser without installing anything. The web tester uses the exact same ONNX models running on a deployed backend.
 
-👉 **[Live Web Demo: Test Aegis Here](https://frontend-ec7nbazna-kshitijpalsinghtomar-4927s-projects.vercel.app)**
+👉 **[Live Web Demo: Test Aegis Here](https://aegis-secure-face-liveness-suite.vercel.app/)**
 
 <div align="center">
   <img src="./assets/webapp-live-test.png" width="48%" />
