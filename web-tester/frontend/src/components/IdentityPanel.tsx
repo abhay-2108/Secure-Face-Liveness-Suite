@@ -131,6 +131,29 @@ export function IdentityPanel({ refreshTrigger }: Props) {
           })}
         </div>
       )}
+
+      {/* Privacy Notice */}
+      <div style={{
+        marginTop: 16,
+        padding: '12px 16px',
+        background: 'rgba(20, 20, 25, 0.4)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)',
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center'
+      }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success)" strokeWidth="2" style={{ flexShrink: 0 }}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M8 11l3 3 5-5"/>
+        </svg>
+        <div>
+          <h4 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>Zero-Trust Privacy</h4>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+            We do not save your face data anywhere. Your face embeddings are stored in temporary RAM and are automatically deleted when the backend session ends.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -44,7 +44,9 @@ export interface IdentitiesResponse {
   count: number;
 }
 
-const BASE = '';  // proxied by Vite dev server
+// Uses environment variable in production, falls back to Vite proxy in development
+// @ts-ignore
+const BASE = import.meta.env.VITE_API_BASE_URL || 'https://kshitijpalsinghtomar-aegis-face-liveness-api.hf.space';
 
 export async function predict(frameB64: string): Promise<PredictResponse> {
   const res = await fetch(`${BASE}/predict`, {

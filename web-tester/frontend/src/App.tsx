@@ -188,12 +188,7 @@ export default function App() {
 
         {/* ── LIVE TEST TAB ─────────────────────────────────── */}
         {tab === 'live' && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 360px',
-            gap: 24,
-            alignItems: 'start',
-          }}>
+          <div className="live-test-grid">
             {/* Left: camera + controls */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <CameraFeed

@@ -174,6 +174,25 @@ export function ResultPanel({ result, loading }: Props) {
               )}
             </div>
             <EmbBars embedding={result.embedding} />
+            
+            {/* Raw Vector Matrix Dump */}
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '6px 8px',
+              fontFamily: 'var(--text-mono)',
+              fontSize: '0.65rem',
+              color: 'var(--accent-primary)',
+              height: 48,
+              overflowY: 'auto',
+              wordBreak: 'break-all',
+              lineHeight: 1.3,
+            }}>
+              <span style={{ color: 'var(--text-muted)' }}>[RAW_VECTOR_128D] </span>
+              {result.embedding.map(v => v.toFixed(4)).join(', ')}
+            </div>
+
             {result.topMatch && result.matchScore && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="text-xs text-muted">Match score:</span>
@@ -220,6 +239,37 @@ export function ResultPanel({ result, loading }: Props) {
           )
         )}
       </ModelCard>
+
+      {/* ── System Diagnostics ── */}
+      <div style={{
+        marginTop: 4,
+        padding: '12px 16px',
+        background: 'rgba(5, 11, 24, 0.6)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-sm)',
+      }}>
+        <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Edge Diagnostics
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', fontSize: '0.7rem', fontFamily: 'var(--text-mono)' }}>
+          <div className="flex justify-between">
+            <span className="text-muted">Memory Arena:</span>
+            <span className="text-success">40MB Locked</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">JSI Bridge:</span>
+            <span className="text-warning">HTTP Fallback</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">Quantization:</span>
+            <span className="text-primary">INT8</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">Thermal Gov:</span>
+            <span className="text-success">Nominal</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

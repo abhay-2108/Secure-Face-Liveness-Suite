@@ -417,3 +417,17 @@ code, pre { font-family: var(--text-mono); }
   font-family: var(--text-mono);
   border: 2px solid transparent;
 }
+
+/* ── Responsiveness ───────────────────────────────────────── */
+.live-test-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .live-test-grid {
+    grid-template-columns: 1fr;
+  }
+}

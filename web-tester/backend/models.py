@@ -25,7 +25,7 @@ _FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_front
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _THIS_DIR  = Path(__file__).parent
-_ONNX_DIR  = _THIS_DIR / ".." / ".." / "edge_vision_engine" / "checkpoints" / "onnx"
+_ONNX_DIR  = _THIS_DIR / "onnx_models"
 
 MODEL_FILES = {
     "int8": {

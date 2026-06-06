@@ -26,6 +26,11 @@
     <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License" /></a>
     <br />
     <a href="https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite"><img src="https://img.shields.io/badge/📖_DeepWiki-Interactive_Docs-7B68EE?style=for-the-badge" alt="DeepWiki Documentation" /></a>
+    <br />
+    <br />
+    <a href="https://frontend-ec7nbazna-kshitijpalsinghtomar-4927s-projects.vercel.app"><img src="https://img.shields.io/badge/🌐_Live_Web_Demo-Test_Aegis_Now-000000?style=for-the-badge&logo=vercel" alt="Live Web App" /></a>
+    &nbsp;&nbsp;
+    <a href="./releases/app-arm64-v8a-release.apk"><img src="https://img.shields.io/badge/📥_Download_APK-Android_Release-3DDC84?style=for-the-badge&logo=android" alt="Android APK" /></a>
   </p>
 </div>
 
@@ -37,9 +42,35 @@
 
 ---
 
+## 🌐 Live Web App Demo (Try it now!)
+
+You can instantly test the Aegis face liveness and recognition pipeline directly in your browser without installing anything. The web tester uses the exact same ONNX models running on a deployed backend.
+
+👉 **[Live Web Demo: Test Aegis Here](https://frontend-ec7nbazna-kshitijpalsinghtomar-4927s-projects.vercel.app)**
+
+<div align="center">
+  <img src="./assets/webapp-live-test.png" width="48%" />
+  <img src="./assets/webapp-registry.png" width="48%" />
+</div>
+
+### Quick Start Guide:
+1. **Open the app** using the link above.
+2. Navigate to the **🎥 Live Test** tab and click **Start Camera** (ensure you grant browser permissions).
+3. Wait for the **"Backend Ready"** indicator in the top right to turn green.
+4. Click the blue **"Register Face"** button (top right), type your name, and register your identity.
+5. Watch the pipeline in action! It will draw real-time bounding boxes, calculate liveness scores (REAL vs PHOTO_SPOOF), and perform identity matching against your newly registered face.
+
+---
+
 ## 📱 Aegis Mobile (Primary App)
 
 The production demo app lives in `aegis-mobile/` and is the primary UI for live camera authentication and enrollment.
+
+<div align="center">
+  <img src="./assets/mobile-home.png" width="30%" />
+  <img src="./assets/mobile-scan.png" width="30%" />
+  <img src="./assets/mobile-success.png" width="30%" />
+</div>
 
 ### 📥 Pre-Built Release APK
 For fast evaluation on physical Android devices, you can download and install our pre-built release binary directly:
@@ -149,15 +180,20 @@ The proprietary `.onnx` models are AES-GCM encrypted on disk. Upon boot, Rust de
 To truly understand how this engine bypasses memory fragmentation and serialization bottlenecks, please read our architectural whitepapers:
 
 - 📚 **[ARCHITECTURE.md](./ARCHITECTURE.md)**: A deep dive into the 4-Tier Zero-Copy bridge and the mathematical implications of the Lock Arena.
+- 📊 **[Presentation Deck (PPTX)](./presentation.pptx)**: View our official pitch deck and architectural presentation slides.
 
 <div align="center">
 
 <br />
 
-### 🌐 Interactive Documentation Portal
+### 🌐 Interactive Documentation & Presentation
 
 <a href="https://deepwiki.com/abhay-2108/Secure-Face-Liveness-Suite">
   <img src="https://img.shields.io/badge/📖_DeepWiki-Explore_Full_Documentation-7B68EE?style=for-the-badge&logoColor=white" alt="DeepWiki" />
+</a>
+&nbsp;&nbsp;
+<a href="./presentation.pptx">
+  <img src="https://img.shields.io/badge/📊_Pitch_Deck-View_Presentation-FF6600?style=for-the-badge" alt="Presentation Deck" />
 </a>
 
 <br />
